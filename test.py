@@ -9,3 +9,4 @@ if __name__ == '__main__':
     driver_config = ["--disable-gpu", "--window-size=1920,1080"]
     model = GPTChrome(driver_config)
     model.login('21110290@lums.edu.pk','')
+    model.send_prompt('Hello how are you doing?')
