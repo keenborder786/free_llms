@@ -1,0 +1,40 @@
+[tool.poetry]
+name = "free-llms"
+version = "0.0.1"
+description = "Use LLMs for Free."
+authors = ["keenborder786 <21110290@lums.edu.pk>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+langchain = "^0.2.1"
+beautifulsoup4 = "^4.12.3"
+selenium = "^4.21.0"
+chromedriver-autoinstaller = "^0.6.4"
+fake-useragent = "^1.5.1"
+
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.4.7"
+mypy = "^1.10.0"
+
+[tool.ruff]
+line-length = 150
+
+[tool.ruff.lint]
+select = [
+  "E",    # pycodestyle
+  "F",    # pyflakes
+  "I",    # isort
+  "T201", # print
+]
+
+[tool.mypy]
+disallow_untyped_defs = "True"
+disable_error_code = ["import-untyped"]
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
