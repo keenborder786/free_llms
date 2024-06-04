@@ -28,7 +28,6 @@ pip install free_llms
 
 
 
-
 ## Usage
 
 ```python
@@ -41,3 +40,7 @@ with GPTChrome(driver_config,'21110290@lums.edu.pk','') as session: # A single s
     print(session.messages) # Messages in the current session in pair of <Human,AI>
         
 ```
+
+## Note:
+
+- Free_LLMs only uses a `Patched Chrome Driver` as it's main driver. The driver can be found [here](https://github.com/ultrafunkamsterdam/undetected-chromedriver/tree/master)

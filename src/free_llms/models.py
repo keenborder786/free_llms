@@ -7,20 +7,18 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from langchain_core.messages import AIMessage, HumanMessage
-from langchain.output_parsers import MarkdownListOutputParser
 import time
 
-class LLMBrowser(ABC):
+class LLMChrome(ABC):
     """
-    Abstract base class for an LLM (Language Model) Browser interface.
+    Abstract base class for an LLM (Language Model) Chrome interface.
 
-    This class defines the interface for creating a browser-based interaction with a language model. 
-    Subclasses must implement the abstract methods and properties.
-
+    This class defines the interface for creating a chrome-based interaction with a language model. 
+    
     Properties:
-    _browser_name (str): The name of the browser.
     _model_url (str): The URL to the model's login page.
     _elements_identifier (Dict[str, str]): A dictionary containing identifiers for various elements on the page.
+    session_history (List[Tuple[HumanMessage, AIMessage]]): All of the messages in the current session in form of Human and AI pair.
 
     Methods:
     configure_options(driver_config: List[str]) -> uc.ChromeOptions:
@@ -74,14 +72,13 @@ class LLMBrowser(ABC):
         pass
 
 
-class GPTChrome(LLMBrowser):
+class GPTChrome(LLMChrome):
     """
     Concrete implementation of LLMBrowser for interacting with ChatGPT through a Chrome browser.
 
     This class uses the undetected_chromedriver and selenium to automate interactions with the ChatGPT web interface.
 
     Properties:
-    _browser_name (str): Returns "chrome".
     _model_url (str): Returns the ChatGPT login URL.
     _elements_identifier (Dict[str, str]): Returns a dictionary of CSS selectors and XPaths for various elements on the ChatGPT page.
     session_history (List[Tuple[HumanMessage, AIMessage]]): All of the messages in the current session in form of Human and AI pair.
@@ -107,9 +104,6 @@ class GPTChrome(LLMBrowser):
         response = browser.send_prompt("What is the capital of France?")
         print(response)
     """
-    @property
-    def _browser_name(self) -> str:
-        return "chrome"
 
     @property
     def _model_url(self) -> str:
@@ -140,7 +134,7 @@ class GPTChrome(LLMBrowser):
         password (str): The password for logging into ChatGPT.
         waiting_time (int): The time to wait for elements to load and interact with them (default is 10 seconds).
         """
-        userAgent = UserAgent(browsers=self._browser_name).random
+        userAgent = UserAgent(browsers='chrome').random
         options = self.configure_options(driver_config)
         options.add_argument(f"--user-agent={userAgent}")
         self.driver = uc.Chrome(options=options, headless=True)
