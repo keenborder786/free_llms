@@ -1,9 +1,12 @@
+<div align="center">
+ <img src="assets/logo.jpeg" alt="Logo" width="10%">
+</div>
+
 # FREE_LLMs
-<img src="assets/logo.jpeg" alt="Logo" width="10%">
 
 ## 🤔 What is Free_LLMs?
 
-Free LLMs is a framework that allows you to use a browser-based interface for large language models such as ChatGPT in an API-like style. It provides an easier way to interact with browser-based LLMs and nothing else. All ownership belongs to the original owners of the respective LLMs.
+Free LLMs is a framework that allows you to use a browser-based interface for large language models such as ChatGPT in an API-like style for FREE!!!. It provides an easier way to interact with browser-based LLMs and nothing else. All ownership belongs to the original owners of the respective LLMs.
 
 ## Quick Install
 
@@ -11,6 +14,18 @@ With pip:
 ```bash
 pip install free_llms
 ```
+
+## Models-Supported:
+
+| Model              | Supported | 
+| ------------------ | ------------------------- | 
+| ChatGPT            | ✅                        |
+| Preplexity ai      | Work in Progress          | 
+| Mistral            | Work in Progress          | 
+| Groq               | Work in Progress          |
+
+
+
 
 ## Usage
 
