@@ -3,7 +3,7 @@
 </div>
 
 # FREE_LLMs
-
+![PyPi Published](https://github.com/keenborder786/free_llms/actions/workflows/python-publish.yml/badge.svg?event=push)
 ## 🤔 What is Free_LLMs?
 
 Free LLMs is a framework that allows you to use a browser-based interface for large language models such as ChatGPT in an API-like style for FREE!!!. It provides an easier way to interact with browser-based LLMs and nothing else. All ownership belongs to the original owners of the respective LLMs.
