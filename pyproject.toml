@@ -11,7 +11,6 @@ python = "^3.9"
 langchain = "^0.2.1"
 beautifulsoup4 = "^4.12.3"
 selenium = "^4.21.0"
-chromedriver-autoinstaller = "^0.6.4"
 fake-useragent = "^1.5.1"
 undetected-chromedriver = "^3.5.5"
 

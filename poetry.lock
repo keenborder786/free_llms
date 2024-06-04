@@ -347,20 +347,6 @@ files = [
 ]
 
 [[package]]
-name = "chromedriver-autoinstaller"
-version = "0.6.4"
-description = "Automatically install chromedriver that supports the currently installed version of chrome."
-optional = false
-python-versions = ">=3.6"
-files = [
-    {file = "chromedriver-autoinstaller-0.6.4.tar.gz", hash = "sha256:1b4df04b87e6107c730085b98e5fd541db3d1777c32b8bd08e2ca4b1244050af"},
-    {file = "chromedriver_autoinstaller-0.6.4-py3-none-any.whl", hash = "sha256:b12ed187ca9fac4d744deb588d221222ed50836384607e5303e6eab98bb9dc64"},
-]
-
-[package.dependencies]
-packaging = ">=23.1"
-
-[[package]]
 name = "exceptiongroup"
 version = "1.2.1"
 description = "Backport of PEP 654 (exception groups)"
@@ -1687,4 +1673,4 @@ test = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more-it
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "7fbd18be7bc33917432e9deccc30b5dfb1bfbbfcedcca27e645ec37bedea2a11"
+content-hash = "71a608b85e10320d8120fa4bccd57cb2fa96a0dae16e94dcb63fb3380e0698d5"
