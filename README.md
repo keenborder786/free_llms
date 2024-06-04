@@ -2,8 +2,8 @@
 <img src="assets/logo.jpeg" alt="Logo" width="10%">
 
 ## 🤔 What is Free_LLMs?
-- Free LLMs is a framework allowing you to use browser based interface of large language models such as ChatGPT in an API like style.
-- Free LLMs is just an easier way to interact with the Browser Based LLMs and nothing else. All ownerships belongs to the original owners of respective LLMs.
+
+Free LLMs is a framework that allows you to use a browser-based interface for large language models such as ChatGPT in an API-like style. It provides an easier way to interact with browser-based LLMs and nothing else. All ownership belongs to the original owners of the respective LLMs.
 
 ## Quick Install
 
