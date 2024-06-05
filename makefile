@@ -1,6 +1,6 @@
 PYTHON_FILES=./src
 lint:
-	pwd
+	ls
 	poetry run ruff $(PYTHON_FILES)
 	poetry run mypy $(PYTHON_FILES)
 
