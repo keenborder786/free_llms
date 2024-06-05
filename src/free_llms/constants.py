@@ -1,1 +1,2 @@
-USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.50 Safari/537.36"
+DEFAULT_WINDOW_SIZE = (1920,1080)
+DRIVERS_DEFAULT_CONFIG = ["--disable-gpu", f"--window-size={DEFAULT_WINDOW_SIZE[0]},{DEFAULT_WINDOW_SIZE[1]}"]

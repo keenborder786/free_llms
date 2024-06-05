@@ -1,29 +1,23 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 import undetected_chromedriver as uc
-from fake_useragent import UserAgent
+from free_llms.utils import configure_options
+from free_llms.constants import DRIVERS_DEFAULT_CONFIG
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from pydantic import BaseModel, model_validator
 from langchain_core.messages import AIMessage, HumanMessage
 import time
 
-class LLMChrome(ABC):
+class LLMChrome(BaseModel, ABC):
     """
-    Abstract base class for an LLM (Language Model) Chrome interface.
+    Abstract Class for establishing a single session with an LLM through a Chrome browser.
 
-    This class defines the interface for creating a chrome-based interaction with a language model. 
-    
-    Properties:
-    _model_url (str): The URL to the model's login page.
-    _elements_identifier (Dict[str, str]): A dictionary containing identifiers for various elements on the page.
-    session_history (List[Tuple[HumanMessage, AIMessage]]): All of the messages in the current session in form of Human and AI pair.
+    This class defines the interface for creating a Chrome-based interaction with a language model for a single session. 
 
     Methods:
-    configure_options(driver_config: List[str]) -> uc.ChromeOptions:
-        Configures the browser options based on provided driver configuration.
-        
     login(email: str, password: str, waiting_time: int = 10) -> bool:
         Logs into the language model interface using the provided email and password.
         
@@ -36,75 +30,111 @@ class LLMChrome(ABC):
     __exit__(*args, **kwargs):
         Exits the runtime context related to this object.
     """
-    @property
-    @abstractmethod
-    def _browser_name(self) -> str:
-        pass
+    email: str
+    """LLM Provider Account Email"""
+    password: str
+    """LLM Proiver Account Password"""
+    waiting_time: int = 10
+    """How much time do you need to wait for elements to appear. Client cannot change this. This depends on LLM providers"""
+    driver: Optional[uc.Chrome] = None
+    """UnDetected Chrome Driver. This is started automatically and client do not need to provide."""
+    driver_config: List[str] = []
+    """Configuration for UnDetected Chrome Driver."""
+    messages: List[Tuple[HumanMessage, AIMessage]] = []
+    """Messages in the current session"""
+    class Config:
+        """Configuration for this pydantic object."""
+        arbitrary_types_allowed = True
 
+    @model_validator(mode='before')
+    def check_start_driver(cls, data: Dict):
+        """
+        Validates and starts the Chrome driver with appropriate configurations.
+        Ensures certain configurations are not modified or reused.
+        """
+        if 'driver' in data:
+            raise ValueError('You cannot pass in an already started driver')
+        if 'message_jump' in data:
+            raise ValueError('You cannot set message jump')
+        for default_config in DRIVERS_DEFAULT_CONFIG:
+            if default_config in data['driver_config']:
+                raise ValueError(f'You cannot put in {default_config} in your provided driver config')
+        for started_config in data['driver_config']:
+            if '--window-size' in started_config:
+                raise ValueError('You cannot change the window size in your provided driver config')
+        options = configure_options(data['driver_config'] + DRIVERS_DEFAULT_CONFIG)
+        data['driver'] = uc.Chrome(options=options, headless=True)
+        return data
+        
     @property
     @abstractmethod
     def _model_url(self) -> str:
+        """The URL to the LLM provider's login page."""
         pass
 
     @property
     @abstractmethod
     def _elements_identifier(self) -> Dict[str, str]:
+        """A dictionary containing identifiers for various elements on the page"""
         pass
+    
+    @property
+    def session_history(self) -> List[Tuple[HumanMessage, AIMessage]]:
+        """All of the messages in the current session in the form of Human and AI pairs."""
+        return self.messages
 
-    @abstractmethod
-    def configure_options(self, driver_config: List[str]) -> uc.ChromeOptions:
-        pass
 
     @abstractmethod
     def login(self, email: str, password: str, waiting_time: int = 10) -> bool:
+        """
+        Logs into LLM Provider Browser using the provided email and password. 
+        No SSO (Single Sign On)
+
+        Returns:
+        bool: True if login is successful, False otherwise.
+        """
         pass
 
     @abstractmethod
     def send_prompt(self, query: str, waiting_time: int = 10) -> str:
+        """
+        Sends a query prompt to LLM Provider and returns the response as a string.
+
+        Args:
+        query (str): The query to send to LLM Provider.
+
+        Returns:
+        str: The response from LLM Provider.
+        """
         pass
     
-    @abstractmethod
+    
     def __enter__(self):
-        pass
+        """
+        Enters the runtime context related to this object (for use in 'with' statements).
+        Automatically logs in upon entering the context.
+        """
+        self.login()
+        return self
     
-    @abstractmethod
-    def __exit__(self):
-        pass
+    
+    def __exit__(self,*args,**kwargs):
+        """
+        Exits the runtime context and closes the browser session.
+        """
+        self.driver.quit()
 
 
 class GPTChrome(LLMChrome):
     """
-    Concrete implementation of LLMBrowser for interacting with ChatGPT through a Chrome browser.
-
-    This class uses the undetected_chromedriver and selenium to automate interactions with the ChatGPT web interface.
-
-    Properties:
-    _model_url (str): Returns the ChatGPT login URL.
-    _elements_identifier (Dict[str, str]): Returns a dictionary of CSS selectors and XPaths for various elements on the ChatGPT page.
-    session_history (List[Tuple[HumanMessage, AIMessage]]): All of the messages in the current session in form of Human and AI pair.
-
-    Methods:
-    configure_options(driver_config: List[str]) -> uc.ChromeOptions:
-        Configures Chrome options based on the provided driver configuration.
-        
-    login() -> bool:
-        Logs into ChatGPT using the provided email and password.
-        
-    send_prompt(query: str) -> str:
-        Sends a query prompt to ChatGPT and returns the response as a string.
-        
-    __enter__():
-        Enters the runtime context for the browser session (for use in 'with' statements). Automatically logs in.
-        
-    __exit__(*args, **kwargs):
-        Exits the runtime context and closes the browser session.
+    Concrete implementation of LLMChrome for establishing a single session with ChatGPT through a Chrome browser.
 
     Usage:
     with GPTChrome(driver_config=["--disable-gpu"], email="your_email", password="your_password") as browser:
         response = browser.send_prompt("What is the capital of France?")
         print(response)
     """
-
+    
     @property
     def _model_url(self) -> str:
         return "https://chatgpt.com/auth/login?sso="
@@ -112,65 +142,19 @@ class GPTChrome(LLMChrome):
     @property
     def _elements_identifier(self) -> Dict[str, str]:
         return {
-            "Login": "#__next > div.flex.min-h-full.w-screen.flex-col.sm\:supports-\[min-height\:100dvh\]\:min-h-\[100dvh\].md\:grid.md\:grid-cols-2.lg\:grid-cols-\[60\%_40\%\] > div.relative.flex.grow.flex-col.items-center.justify-between.bg-white.px-5.py-8.text-black.dark\:bg-black.dark\:text-white.sm\:rounded-t-\[30px\].md\:rounded-none.md\:px-6 > div.relative.flex.w-full.grow.flex-col.items-center.justify-center > div > div > button:nth-child(1)", # noqa: E501
+            "Login": '//*[@id="__next"]/div[1]/div[2]/div[1]/div/div/button[1]',  # noqa: E501
             "Email": "username",
             "Email_Continue": "action",
             "Password": '//*[@id="password"]',
             "Prompt_Text_Area": "prompt-textarea",
-            "Prompt_Text_Output": '//*[@id="__next"]/div[1]/div[2]/main/div[1]/div[1]/div/div/div/div/div[{current}]/div/div/div[2]/div/div[1]/div/div/div',
+            "Prompt_Text_Output": '//*[@id="__next"]/div[1]/div[2]/main/div[2]/div[1]/div/div/div/div/div[{current}]/div/div/div[2]/div[2]/div[1]/div/div', # noqa: E501
         }
-
-    @property
-    def session_history(self) -> List[Tuple[HumanMessage, AIMessage]]:
-        return self.messages
     
-    def __init__(self, driver_config: List[str], email: str = '', password: str = '', waiting_time: int = 10):
-        """
-        Initializes the GPTChrome browser instance.
-
-        Args:
-        driver_config (List[str]): List of Chrome driver configuration options.
-        email (str): The email address for logging into ChatGPT.
-        password (str): The password for logging into ChatGPT.
-        waiting_time (int): The time to wait for elements to load and interact with them (default is 10 seconds).
-        """
-        userAgent = UserAgent(browsers='chrome').random
-        options = self.configure_options(driver_config)
-        options.add_argument(f"--user-agent={userAgent}")
-        self.driver = uc.Chrome(options=options, headless=True)
-        self.email: str = email
-        self.password: str = password
-        self.waiting_time: int = waiting_time
-        self.messages: List[Tuple[HumanMessage, AIMessage]] = []
-        self.message_jump = 3
-
-    @classmethod
-    def configure_options(self, driver_config: List[str]) -> uc.ChromeOptions:
-        """
-        Configures the Chrome options.
-
-        Args:
-        driver_config (List[str]): List of Chrome driver configuration options.
-
-        Returns:
-        uc.ChromeOptions: Configured Chrome options.
-        """
-        chrome_options = uc.ChromeOptions()
-        for arg in driver_config:
-            chrome_options.add_argument(arg)
-        return chrome_options
-
     def login(self) -> bool:
-        """
-        Logs into ChatGPT using the provided email and password.
-
-        Returns:
-        bool: True if login is successful, False otherwise.
-        """
         self.driver.get(self._model_url)
         try:
             login_button = WebDriverWait(self.driver, self.waiting_time).until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, self._elements_identifier["Login"]))
+                EC.element_to_be_clickable((By.XPATH, self._elements_identifier["Login"]))
             )
             login_button.click()
             email_input = WebDriverWait(self.driver, self.waiting_time).until(
@@ -194,18 +178,18 @@ class GPTChrome(LLMChrome):
         return True
 
     def send_prompt(self, query: str) -> str:
-        """
-        Sends a query prompt to ChatGPT and returns the response as a string.
-
-        Args:
-        query (str): The query to send to ChatGPT.
-
-        Returns:
-        str: The response from ChatGPT.
-        """
-        text_area = WebDriverWait(self.driver, self.waiting_time).until(
-            EC.presence_of_element_located((By.ID, self._elements_identifier["Prompt_Text_Area"]))
-        )
+        while True:
+            try:
+                text_area = WebDriverWait(self.driver, self.waiting_time).until(
+                    EC.presence_of_element_located((By.ID, self._elements_identifier["Prompt_Text_Area"]))
+                )
+                break
+            except TimeoutException:
+                current_url = self.driver.current_url
+                self.driver.quit()
+                self.driver = uc.Chrome(options=configure_options(self.driver_config + DRIVERS_DEFAULT_CONFIG), headless=True)
+                self.driver.get(current_url)
+            
         text_area.click()
         text_area.send_keys(query)
         text_area.submit()
@@ -213,28 +197,12 @@ class GPTChrome(LLMChrome):
         streaming = ''
         time.sleep(self.waiting_time)  # Wait for the query to be processed
         current_n, prev_n = 0, -1
+        message_jump = 3
         while current_n != prev_n:
             prev_n = current_n
-            streaming = self.driver.find_element(By.XPATH, self._elements_identifier['Prompt_Text_Output'].format(current=self.message_jump))
+            streaming = self.driver.find_element(By.XPATH, self._elements_identifier['Prompt_Text_Output'].format(current=message_jump))
             raw_message = streaming.get_attribute('innerHTML')
             current_n = len(raw_message)
-        self.message_jump += 2
+        message_jump += 2
         self.messages.append([HumanMessage(content=query), AIMessage(content=raw_message)])
         return raw_message
-    
-    def __enter__(self):
-        """
-        Enters the runtime context related to this object (for use in 'with' statements).
-        Automatically logs in upon entering the context.
-        
-        Returns:
-        GPTChrome: The browser instance.
-        """
-        self.login()
-        return self
-
-    def __exit__(self, *args, **kwargs):
-        """
-        Exits the runtime context and closes the browser session.
-        """
-        self.driver.quit()
