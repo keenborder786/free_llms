@@ -46,6 +46,9 @@ class LLMChrome(BaseModel, ABC):
     """Configuration for UnDetected Chrome Driver."""
     messages: List[Tuple[HumanMessage, AIMessage]] = []
     """Messages in the current session"""
+    retries_attempt: int = 3
+    """How many login attempts do we need to make unless we stop the session or start a anonymous session (IF LLM Provider allows)"""
+
 
     class Config:
         """Configuration for this pydantic object."""
@@ -121,7 +124,7 @@ class LLMChrome(BaseModel, ABC):
         Enters the runtime context related to this object (for use in 'with' statements).
         Automatically logs in upon entering the context.
         """
-        self.login()
+        self.login(self.retries_attempt)
         return self
 
     def __exit__(self, *args: Any, **kwargs: Any) -> None:
@@ -156,7 +159,7 @@ class GPTChrome(LLMChrome):
             "Prompt_Text_Output": '//*[@id="__next"]/div[1]/div[2]/main/div[2]/div[1]/div/div/div/div/div[{current}]/div/div/div[2]/div[2]/div[1]/div/div',  # noqa: E501
         }
 
-    def login(self, retries_attempt: int = 3) -> bool:
+    def login(self, retries_attempt: int) -> bool:
         self.driver.get(self._model_url)
         for _ in range(retries_attempt):
             try:
