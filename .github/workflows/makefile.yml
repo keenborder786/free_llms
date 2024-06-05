@@ -13,12 +13,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v3
+   
+    - name: Installing Conda
+      uses: conda-incubator/setup-miniconda@v3
       with:
-        python-version: '3.x'
-    
+        auto-activate-base: true
+        python-version: '3.9'
     - name: Install Poetry
       uses: Gr1N/setup-poetry@v8
     
