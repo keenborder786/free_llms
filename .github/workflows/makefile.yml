@@ -13,9 +13,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Install dependencies
-      run: make
-
-    - name: linter
+  
+    - name: Running Linter
       run: make lint
