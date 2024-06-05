@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "free-llms"
-version = "0.0.2"
+version = "0.1.0"
 description = "Use LLMs for Free."
 authors = ["keenborder786 <21110290@lums.edu.pk>"]
 license = "MIT"
