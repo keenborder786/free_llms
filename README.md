@@ -5,6 +5,7 @@
 # FREE_LLMs
 
 ![PyPi Published](https://github.com/keenborder786/free_llms/actions/workflows/python-publish.yml/badge.svg?event=release)
+![Linter](https://github.com/keenborder786/free_llms/actions/workflows/linter.yml/badge.svg?event=push)
 
 ## 🤔 What is Free_LLMs?
 
