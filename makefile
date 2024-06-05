@@ -1,4 +1,4 @@
-PYTHON_FILES=./src
+PYTHON_FILES=src
 lint:
 	ls
 	poetry run ruff $(PYTHON_FILES)
