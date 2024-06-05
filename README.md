@@ -1,5 +1,5 @@
 <div align="center">
- <img src="assets/logo.jpeg" alt="Logo" width="10%">
+ <img src="https://github.com/keenborder786/free_llms/blob/ea08f8ef5ae33e57aaff18f28568df426a354a4c/assets/logo.jpeg" alt="Logo" width="10%">
 </div>
 
 # FREE_LLMs
