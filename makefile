@@ -1,5 +1,6 @@
-PYTHON_FILES=src
+PYTHON_FILES=./src
 lint:
+	pwd
 	poetry run ruff $(PYTHON_FILES)
 	poetry run mypy $(PYTHON_FILES)
 
