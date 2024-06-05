@@ -1,8 +1,10 @@
 import time
+import uuid
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple
 
 import undetected_chromedriver as uc
+from langchain_core.callbacks import BaseCallbackHandler, RunManager
 from langchain_core.messages import AIMessage, HumanMessage
 from pydantic import BaseModel, model_validator
 from selenium.common.exceptions import TimeoutException
@@ -10,6 +12,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
+from free_llms.callbacks import StdOutCallbackHandler
 from free_llms.constants import DRIVERS_DEFAULT_CONFIG
 from free_llms.utils import configure_options
 
@@ -47,8 +50,13 @@ class LLMChrome(BaseModel, ABC):
     messages: List[Tuple[HumanMessage, AIMessage]] = []
     """Messages in the current session"""
     retries_attempt: int = 3
-    """How many login attempts do we need to make unless we stop the session or start a anonymous session (IF LLM Provider allows)"""
-
+    """How many login attempts do we need to make otherwise we raise error"""
+    callbacks: List[BaseCallbackHandler] = []
+    """Optional list of callback handlers (or callback manager). Defaults to None."""
+    run_manager: RunManager
+    """Run Manager that manages and callbacks various events from the given callbacks"""
+    verbose: bool = True
+    """Whether you want to print logs. Defaults to True"""
 
     class Config:
         """Configuration for this pydantic object."""
@@ -56,6 +64,15 @@ class LLMChrome(BaseModel, ABC):
         arbitrary_types_allowed = True
 
     @model_validator(mode="before")
+    @classmethod
+    def start_run_manger(cls, data: Dict) -> Dict:
+        if "callbacks" not in data:
+            data["callbacks"] = [StdOutCallbackHandler(color="green")]
+        data["run_manager"] = RunManager(run_id=uuid.uuid1(), handlers=data["callbacks"], inheritable_handlers=[])
+        return data
+
+    @model_validator(mode="before")
+    @classmethod
     def check_start_driver(cls, data: Dict) -> Dict:
         """
         Validates and starts the Chrome driver with appropriate configurations.
@@ -93,7 +110,7 @@ class LLMChrome(BaseModel, ABC):
         return self.messages
 
     @abstractmethod
-    def login(self, retries_attempt: int = 3) -> bool:
+    def login(self, retries_attempt: int) -> bool:
         """
         Logs into LLM Provider Browser using the provided email and password.
         No SSO (Single Sign On)
@@ -124,7 +141,8 @@ class LLMChrome(BaseModel, ABC):
         Enters the runtime context related to this object (for use in 'with' statements).
         Automatically logs in upon entering the context.
         """
-        self.login(self.retries_attempt)
+        if not self.login(self.retries_attempt):
+            raise ValueError("Cannot Login given the credentials")
         return self
 
     def __exit__(self, *args: Any, **kwargs: Any) -> None:
@@ -161,7 +179,8 @@ class GPTChrome(LLMChrome):
 
     def login(self, retries_attempt: int) -> bool:
         self.driver.get(self._model_url)
-        for _ in range(retries_attempt):
+        for i in range(retries_attempt):
+            self.run_manager.on_text(text=f"Making login attempt no. {i+1} on ChatGPT", verbose=self.verbose)
             try:
                 login_button = WebDriverWait(self.driver, self.waiting_time).until(
                     EC.element_to_be_clickable((By.XPATH, self._elements_identifier["Login"]))
@@ -183,6 +202,7 @@ class GPTChrome(LLMChrome):
                 password_button.click()
                 password_button.send_keys(self.password)
                 password_button.submit()
+                self.run_manager.on_text(text=f"Login succeed on attempt no. {i+1}", verbose=self.verbose)
                 return True
             except TimeoutException:
                 continue
@@ -199,10 +219,12 @@ class GPTChrome(LLMChrome):
                 current_url = self.driver.current_url
                 self.driver.quit()
                 self.driver = uc.Chrome(options=configure_options(self.driver_config + DRIVERS_DEFAULT_CONFIG), headless=True)
+                self.run_manager.on_text(text="Captacha Detected on ChatGPT. Starting Annoymous Session", verbose=self.verbose)
                 self.driver.get(current_url)
 
         text_area.click()
         text_area.send_keys(query)
+        self.run_manager.on_text(text=f"Human Message: {query} send to ChatGPT", verbose=self.verbose)
         text_area.submit()
         raw_message = ""
         time.sleep(self.waiting_time)  # Wait for the query to be processed
@@ -212,7 +234,9 @@ class GPTChrome(LLMChrome):
             prev_n = current_n
             streaming = self.driver.find_element(By.XPATH, self._elements_identifier["Prompt_Text_Output"].format(current=message_jump))
             raw_message = streaming.get_attribute("innerHTML")
+            self.run_manager.on_text(text="ChatGPT is responding", verbose=self.verbose)
             current_n = len(raw_message) if raw_message is not None else 0
         message_jump += 2
+        self.run_manager.on_text(text=f"ChatGPT responded with {len(raw_message)} characters", verbose=self.verbose)
         self.messages.append((HumanMessage(content=query), AIMessage(content=raw_message)))
         return raw_message
