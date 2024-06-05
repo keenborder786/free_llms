@@ -23,13 +23,13 @@ pip install free_llms
 | Model              | Supported | 
 | ------------------ | ------------------------- | 
 | ChatGPT            | ✅                        |
-| Preplexity ai      | Work in Progress          | 
+| Preplexity ai      | ✅           | 
 | Mistral            | Work in Progress          | 
 | Groq               | Work in Progress          |
 
 
 
-## Usage
+## ChatGPT
 
 ```python
 
@@ -42,6 +42,25 @@ with GPTChrome(driver_config=driver_config,
     """) # First Message
     data1 = session.send_prompt('Now convert it into python') # Second message
     print(session.messages) # Messages in the current session in pair of <Human,AI>
+```
+
+
+## Preplexity AI 
+
+```python
+
+from free_llms.models import PreplexityChrome
+driver_config = [] # pass in selnium driver config except for the following ["--disable-gpu", f"--window-size=1920,1080"]
+with PreplexityChrome(driver_config=driver_config,
+               email = '', # for preplexity we do not need email
+               password = '',# for preplexity we do not need password
+               ) as session: # A single session started with Preplexity
+    data = session.send_prompt("""Make the following sentence correct:
+    I did went to Lahore.                           
+    """) # First Message
+    data = session.send_prompt("""Who is george hotz?""") # Second Message, right now each message is independent in preplexity ai
+    print(session.messages) # Messages in the current session in pair of <Human,AI>
+
 ```
 
 ## Note:
