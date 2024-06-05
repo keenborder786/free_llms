@@ -23,7 +23,7 @@ jobs:
       uses: Gr1N/setup-poetry@v8
     
     - name: Install Packages
-      uses: poetry install --with dev
+      run: poetry install --with dev
     
     - name: Running Linter
       run: make lint
