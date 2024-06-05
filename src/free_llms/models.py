@@ -1,13 +1,15 @@
+import io
 import time
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import undetected_chromedriver as uc
+from bs4 import BeautifulSoup
 from langchain_core.callbacks import BaseCallbackHandler, RunManager
 from langchain_core.messages import AIMessage, HumanMessage
 from pydantic import BaseModel, model_validator
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -113,7 +115,7 @@ class LLMChrome(BaseModel, ABC):
     def login(self, retries_attempt: int) -> bool:
         """
         Logs into LLM Provider Browser using the provided email and password.
-        No SSO (Single Sign On)
+        No Social Logins e.g Google etc
 
         Args:
         retries_attempt (str): The number of attempts to do a login request
@@ -124,7 +126,7 @@ class LLMChrome(BaseModel, ABC):
         pass
 
     @abstractmethod
-    def send_prompt(self, query: str) -> str:
+    def send_prompt(self, query: str) -> AIMessage:
         """
         Sends a query prompt to LLM Provider and returns the response as a string.
 
@@ -208,7 +210,7 @@ class GPTChrome(LLMChrome):
                 continue
         return False
 
-    def send_prompt(self, query: str) -> str:
+    def send_prompt(self, query: str) -> AIMessage:
         while True:
             try:
                 text_area = WebDriverWait(self.driver, self.waiting_time).until(
@@ -239,4 +241,59 @@ class GPTChrome(LLMChrome):
         message_jump += 2
         self.run_manager.on_text(text=f"ChatGPT responded with {len(raw_message)} characters", verbose=self.verbose)
         self.messages.append((HumanMessage(content=query), AIMessage(content=raw_message)))
-        return raw_message
+        return AIMessage(content=raw_message)
+
+
+class PreplexityChrome(LLMChrome):
+    """Note: Preplexity does not right no build on previous conversation. Every Message is a new request"""
+
+    @property
+    def _model_url(self) -> str:
+        return "https://www.perplexity.ai/"
+
+    @property
+    def _elements_identifier(self) -> Dict[str, str]:
+        return {
+            "Prompt_Text_Area": "/html/body/div/main/div/div/div/div/div/div/div[1]/div[2]/div/div/span/div/div/textarea",
+            "Prompt_Text_Area_Submit": "#__next > main > div > div > div.grow.lg\:pr-sm.lg\:pb-sm.lg\:pt-sm > div > div > div > div.relative.flex.h-full.flex-col > div.mt-lg.w-full.grow.items-center.md\:mt-0.md\:flex.border-borderMain\/50.ring-borderMain\/50.divide-borderMain\/50.dark\:divide-borderMainDark\/50.dark\:ring-borderMainDark\/50.dark\:border-borderMainDark\/50.bg-transparent > div > div > span > div > div > div.bg-background.dark\:bg-offsetDark.flex.items-center.space-x-2.justify-self-end.rounded-full.col-start-3.row-start-2.-mr-2 > button",  # noqa: E501
+            "Prompt_Text_Output": "/html/body/div/main/div/div/div/div/div/div[2]/div[1]/div/div/div[1]/div/div/div[3]/div/div[1]/div[2]/div/div[2]",  # noqa: E501
+            "Prompt_Text_Output_Related": "/html/body/div/main/div/div/div/div/div/div[2]/div[1]/div/div/div[1]/div/div/div[3]/div/div[1]/div[3]/div/div",  # noqa: E501
+            "App_Download_Button": "/html/body/div[1]/main/div[3]/div/div/div/div[2]/div[1]/div/div/button",
+        }
+
+    def login(self, retries_attempt: int) -> bool:
+        """With Perplexity we are going to stick to anonymous session"""
+        return True
+
+    def send_prompt(self, query: str) -> AIMessage:
+        self.driver.get(self._model_url)
+        text_area = WebDriverWait(self.driver, self.waiting_time).until(
+            EC.element_to_be_clickable((By.XPATH, self._elements_identifier["Prompt_Text_Area"]))
+        )
+
+        text_area.click()
+        text_area.send_keys(query)
+        text_area_submit = WebDriverWait(self.driver, self.waiting_time).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, self._elements_identifier["Prompt_Text_Area_Submit"]))
+        )
+        text_area_submit.click()
+        raw_message: Optional[str] = ""
+        while True:
+            try:
+                WebDriverWait(self.driver, self.waiting_time).until(
+                    EC.visibility_of_element_located((By.XPATH, self._elements_identifier["Prompt_Text_Output_Related"]))
+                )
+                text_area_output = WebDriverWait(self.driver, self.waiting_time).until(
+                    EC.visibility_of_element_located((By.XPATH, self._elements_identifier["Prompt_Text_Output"]))
+                )
+                raw_message = text_area_output.get_attribute("innerHTML")
+                break
+            except TimeoutException:
+                try:
+                    app_download_button = self.driver.find_element(By.XPATH, self._elements_identifier["App_Download_Button"])
+                    app_download_button.click()
+                except NoSuchElementException:
+                    continue
+        processed_message = BeautifulSoup(io.StringIO(raw_message)).get_text()
+        self.messages.append((HumanMessage(content=query), AIMessage(content=processed_message)))
+        return AIMessage(content=processed_message)
