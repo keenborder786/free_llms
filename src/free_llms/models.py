@@ -302,3 +302,45 @@ class PreplexityChrome(LLMChrome):
         processed_message = BeautifulSoup(io.StringIO(raw_message)).get_text()
         self.messages.append((HumanMessage(content=query), AIMessage(content=processed_message)))
         return AIMessage(content=processed_message)
+
+
+class MistralChrome(LLMChrome):
+    @property
+    def _model_url(self) -> str:
+        return "https://chat.mistral.ai/chat"
+
+    @property
+    def _elements_identifier(self) -> Dict[str, str]:
+        return {
+            "Email": ":Rclkn:",
+            "Password": ":Rklkn:",
+            "Login_Button": "/html/body/main/div/div[1]/div/div/div[2]/div/form[2]/div[3]/div[2]/div/button"
+        }
+
+    def login(self, retries_attempt: int) -> bool:
+        self.driver.get(self._model_url)
+        
+        for i in range(retries_attempt):
+            self.run_manager.on_text(text=f"Making login attempt no. {i+1} on Mistral", verbose=self.verbose)
+            try:
+                email_input = WebDriverWait(self.driver, self.waiting_time).until(EC.presence_of_element_located((By.ID, self._elements_identifier["Email"])))
+                email_input.click()
+                email_input.send_keys(self.email)
+                password_button = WebDriverWait(self.driver, self.waiting_time).until(
+                    EC.element_to_be_clickable((By.ID, self._elements_identifier["Password"]))
+                )
+                password_button.clear()
+                password_button.click()
+                password_button.send_keys(self.password)
+                login_button = WebDriverWait(self.driver, self.waiting_time).until(
+                    EC.element_to_be_clickable((By.XPATH, self._elements_identifier["Login_Button"]))
+                )
+                login_button.click()
+                self.run_manager.on_text(text=f"Login succeed on attempt no. {i+1}", verbose=self.verbose)
+                return True
+            except TimeoutException:
+                continue
+        return False
+
+    def send_prompt(self, query: str) -> AIMessage:
+        pass
