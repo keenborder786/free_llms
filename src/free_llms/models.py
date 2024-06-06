@@ -296,6 +296,8 @@ class PreplexityChrome(LLMChrome):
                 except NoSuchElementException:
                     continue
             self.run_manager.on_text(text="Preplexity is responding", verbose=self.verbose)
+        if raw_message is None:
+            raw_message = ""
         self.run_manager.on_text(text=f"Preplexity responded with {len(raw_message)} characters", verbose=self.verbose)
         processed_message = BeautifulSoup(io.StringIO(raw_message)).get_text()
         self.messages.append((HumanMessage(content=query), AIMessage(content=processed_message)))
