@@ -1,5 +1,3 @@
-import sys
-sys.path.insert(0,'/Users/mac/free_llms/src')
 from free_llms.models import PreplexityChrome
 driver_config = [] # pass in selnium driver config except for the following ["--disable-gpu", f"--window-size=1920,1080"]
 with PreplexityChrome(driver_config=driver_config,
