@@ -59,6 +59,8 @@ class LLMChrome(BaseModel, ABC):
     """Run Manager that manages and callbacks various events from the given callbacks"""
     verbose: bool = True
     """Whether you want to print logs. Defaults to True"""
+    message_box_jump: int = 2
+    """For some models we need to increment this to get the next message in the current session from the selnium elements visible on screen"""
 
     class Config:
         """Configuration for this pydantic object."""
@@ -91,7 +93,7 @@ class LLMChrome(BaseModel, ABC):
             if "--window-size" in started_config:
                 raise ValueError("You cannot change the window size in your provided driver config")
         options = configure_options(data["driver_config"] + DRIVERS_DEFAULT_CONFIG)
-        data["driver"] = uc.Chrome(options=options, headless=True)
+        data["driver"] = uc.Chrome(options=options, headless=False)
         return data
 
     @property
@@ -164,6 +166,9 @@ class GPTChrome(LLMChrome):
         print(response)
     """
 
+    message_box_jump: int = 3
+    """For the GPT Chrome, the starting message box is at 3"""
+
     @property
     def _model_url(self) -> str:
         return "https://chatgpt.com/auth/login?sso="
@@ -220,7 +225,7 @@ class GPTChrome(LLMChrome):
             except TimeoutException:
                 current_url = self.driver.current_url
                 self.driver.quit()
-                self.driver = uc.Chrome(options=configure_options(self.driver_config + DRIVERS_DEFAULT_CONFIG), headless=True)
+                self.driver = uc.Chrome(options=configure_options(self.driver_config + DRIVERS_DEFAULT_CONFIG), headless=False)
                 self.run_manager.on_text(text="Captacha Detected on ChatGPT. Starting Annoymous Session", verbose=self.verbose)
                 self.driver.get(current_url)
 
@@ -231,14 +236,13 @@ class GPTChrome(LLMChrome):
         raw_message = ""
         time.sleep(self.waiting_time)  # Wait for the query to be processed
         current_n, prev_n = 0, -1
-        message_jump = 3
         while current_n != prev_n:
             prev_n = current_n
-            streaming = self.driver.find_element(By.XPATH, self._elements_identifier["Prompt_Text_Output"].format(current=message_jump))
+            streaming = self.driver.find_element(By.XPATH, self._elements_identifier["Prompt_Text_Output"].format(current=self.message_box_jump))
             raw_message = streaming.get_attribute("innerHTML")
             self.run_manager.on_text(text="ChatGPT is responding", verbose=self.verbose)
             current_n = len(raw_message) if raw_message is not None else 0
-        message_jump += 2
+        self.message_box_jump += 2
         self.run_manager.on_text(text=f"ChatGPT responded with {len(raw_message)} characters", verbose=self.verbose)
         self.messages.append((HumanMessage(content=query), AIMessage(content=raw_message)))
         return AIMessage(content=raw_message)
@@ -256,8 +260,8 @@ class PreplexityChrome(LLMChrome):
         return {
             "Prompt_Text_Area": "/html/body/div/main/div/div/div/div/div/div/div[1]/div[2]/div/div/span/div/div/textarea",
             "Prompt_Text_Area_Submit": "#__next > main > div > div > div.grow.lg\:pr-sm.lg\:pb-sm.lg\:pt-sm > div > div > div > div.relative.flex.h-full.flex-col > div.mt-lg.w-full.grow.items-center.md\:mt-0.md\:flex.border-borderMain\/50.ring-borderMain\/50.divide-borderMain\/50.dark\:divide-borderMainDark\/50.dark\:ring-borderMainDark\/50.dark\:border-borderMainDark\/50.bg-transparent > div > div > span > div > div > div.bg-background.dark\:bg-offsetDark.flex.items-center.space-x-2.justify-self-end.rounded-full.col-start-3.row-start-2.-mr-2 > button",  # noqa: E501
-            "Prompt_Text_Output": "/html/body/div/main/div/div/div/div/div/div[2]/div[1]/div/div/div[1]/div/div/div[3]/div/div[1]/div[2]/div/div[2]",  # noqa: E501
-            "Prompt_Text_Output_Related": "/html/body/div/main/div/div/div/div/div/div[2]/div[1]/div/div/div[1]/div/div/div[3]/div/div[1]/div[3]/div/div",  # noqa: E501
+            "Prompt_Text_Area_Output": "/html/body/div/main/div/div/div/div/div/div[2]/div[1]/div/div/div[1]/div/div/div[3]/div/div[1]/div[2]/div/div[2]",  # noqa: E501
+            "Prompt_Text_Area_Output_Related": "/html/body/div/main/div/div/div/div/div/div[2]/div[1]/div/div/div[1]/div/div/div[3]/div/div[1]/div[3]/div/div",  # noqa: E501
             "App_Download_Button": "/html/body/div[1]/main/div[3]/div/div/div/div[2]/div[1]/div/div/button",
         }
 
@@ -282,10 +286,10 @@ class PreplexityChrome(LLMChrome):
         while True:
             try:
                 WebDriverWait(self.driver, self.waiting_time).until(
-                    EC.visibility_of_element_located((By.XPATH, self._elements_identifier["Prompt_Text_Output_Related"]))
+                    EC.visibility_of_element_located((By.XPATH, self._elements_identifier["Prompt_Text_Area_Output_Related"]))
                 )
                 text_area_output = WebDriverWait(self.driver, self.waiting_time).until(
-                    EC.visibility_of_element_located((By.XPATH, self._elements_identifier["Prompt_Text_Output"]))
+                    EC.visibility_of_element_located((By.XPATH, self._elements_identifier["Prompt_Text_Area_Output"]))
                 )
                 raw_message = text_area_output.get_attribute("innerHTML")
                 break
@@ -305,6 +309,9 @@ class PreplexityChrome(LLMChrome):
 
 
 class MistralChrome(LLMChrome):
+    message_box_jump: int = 2
+    """For the Mistral Chrome, the starting message box is at 2"""
+
     @property
     def _model_url(self) -> str:
         return "https://chat.mistral.ai/chat"
@@ -314,16 +321,21 @@ class MistralChrome(LLMChrome):
         return {
             "Email": ":Rclkn:",
             "Password": ":Rklkn:",
-            "Login_Button": "/html/body/main/div/div[1]/div/div/div[2]/div/form[2]/div[3]/div[2]/div/button"
+            "Login_Button": "/html/body/main/div/div[1]/div/div/div[2]/div/form[2]/div[3]/div[2]/div/button",
+            "Prompt_Text_Area": "/html/body/div[1]/div[2]/div[2]/div/div[2]/div/div[1]/div/textarea",
+            "Prompt_Text_Area_Submit": "/html/body/div[1]/div[2]/div[2]/div/div[2]/div/div[1]/div/button",
+            "Prompt_Text_Area_Output": "/html/body/div[1]/div[2]/div[2]/div/div[1]/div[1]/div[{current}]/div[2]/div[1]",
         }
 
     def login(self, retries_attempt: int) -> bool:
         self.driver.get(self._model_url)
-        
+
         for i in range(retries_attempt):
             self.run_manager.on_text(text=f"Making login attempt no. {i+1} on Mistral", verbose=self.verbose)
             try:
-                email_input = WebDriverWait(self.driver, self.waiting_time).until(EC.presence_of_element_located((By.ID, self._elements_identifier["Email"])))
+                email_input = WebDriverWait(self.driver, self.waiting_time).until(
+                    EC.presence_of_element_located((By.ID, self._elements_identifier["Email"]))
+                )
                 email_input.click()
                 email_input.send_keys(self.email)
                 password_button = WebDriverWait(self.driver, self.waiting_time).until(
@@ -343,4 +355,25 @@ class MistralChrome(LLMChrome):
         return False
 
     def send_prompt(self, query: str) -> AIMessage:
-        pass
+        text_area = WebDriverWait(self.driver, self.waiting_time).until(
+            EC.presence_of_element_located((By.XPATH, self._elements_identifier["Prompt_Text_Area"]))
+        )
+        text_area.click()
+        text_area.send_keys(query)
+        text_area_submit_button = WebDriverWait(self.driver, self.waiting_time).until(
+            EC.presence_of_element_located((By.XPATH, self._elements_identifier["Prompt_Text_Area_Submit"]))
+        )
+        text_area_submit_button.click()
+        time.sleep(self.waiting_time)  # Wait for the query to be processed
+        current_n, prev_n = 0, -1
+        while current_n != prev_n:
+            prev_n = current_n
+            streaming = self.driver.find_element(By.XPATH, self._elements_identifier["Prompt_Text_Area_Output"].format(current=self.message_box_jump))
+            raw_message = streaming.get_attribute("innerHTML")
+            self.run_manager.on_text(text="Mistral is responding", verbose=self.verbose)
+            current_n = len(raw_message) if raw_message is not None else 0
+
+        self.message_box_jump += 2
+        self.run_manager.on_text(text=f"Mistral responded with {len(raw_message)} characters", verbose=self.verbose)
+        self.messages.append((HumanMessage(content=query), AIMessage(content=raw_message)))
+        return AIMessage(content=raw_message)
