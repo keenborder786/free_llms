@@ -93,7 +93,7 @@ class LLMChrome(BaseModel, ABC):
             if "--window-size" in started_config:
                 raise ValueError("You cannot change the window size in your provided driver config")
         options = configure_options(data["driver_config"] + DRIVERS_DEFAULT_CONFIG)
-        data["driver"] = uc.Chrome(options=options, headless=False)
+        data["driver"] = uc.Chrome(options=options, headless=True)
         return data
 
     @property
@@ -225,7 +225,7 @@ class GPTChrome(LLMChrome):
             except TimeoutException:
                 current_url = self.driver.current_url
                 self.driver.quit()
-                self.driver = uc.Chrome(options=configure_options(self.driver_config + DRIVERS_DEFAULT_CONFIG), headless=False)
+                self.driver = uc.Chrome(options=configure_options(self.driver_config + DRIVERS_DEFAULT_CONFIG), headless=True)
                 self.run_manager.on_text(text="Captacha Detected on ChatGPT. Starting Annoymous Session", verbose=self.verbose)
                 self.driver.get(current_url)
 
