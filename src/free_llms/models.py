@@ -277,6 +277,7 @@ class PreplexityChrome(LLMChrome):
             EC.element_to_be_clickable((By.CSS_SELECTOR, self._elements_identifier["Prompt_Text_Area_Submit"]))
         )
         text_area_submit.click()
+        self.run_manager.on_text(text=f"Human Message: {query} send to Preplexity", verbose=self.verbose)
         raw_message: Optional[str] = ""
         while True:
             try:
@@ -294,6 +295,8 @@ class PreplexityChrome(LLMChrome):
                     app_download_button.click()
                 except NoSuchElementException:
                     continue
+            self.run_manager.on_text(text="Preplexity is responding", verbose=self.verbose)
+        self.run_manager.on_text(text=f"Preplexity responded with {len(raw_message)} characters", verbose=self.verbose)
         processed_message = BeautifulSoup(io.StringIO(raw_message)).get_text()
         self.messages.append((HumanMessage(content=query), AIMessage(content=processed_message)))
         return AIMessage(content=processed_message)
