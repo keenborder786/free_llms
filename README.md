@@ -24,7 +24,7 @@ pip install free_llms
 | ------------------ | ------------------------- | 
 | ChatGPT            | ✅                        |
 | Preplexity ai      | ✅           | 
-| Mistral            | Work in Progress          | 
+| Mistral            | ✅           | 
 | Groq               | Work in Progress          |
 
 
@@ -61,6 +61,22 @@ with PreplexityChrome(driver_config=driver_config,
     data = session.send_prompt("""Who is george hotz?""") # Second Message, right now each message is independent in preplexity ai
     print(session.messages) # Messages in the current session in pair of <Human,AI>
 
+```
+
+
+## Mistral
+
+```python
+
+from free_llms.models import MistralChrome
+driver_config = [] # pass in selnium driver config except for the following ["--disable-gpu", f"--window-size=1920,1080"]
+with MistralChrome(driver_config=driver_config,
+               email = '21110290@lums.edu.pk', # Mistral Email
+               password = '',# Mistral Password
+               ) as session: # A single session started with Mistral
+    session.send_prompt('Write a short long horro story of 100 woirds')
+    session.send_prompt('Make it funny')
+    print(session.messages)
 ```
 
 ## Note:
