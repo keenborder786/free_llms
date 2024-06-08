@@ -93,7 +93,7 @@ class LLMChrome(BaseModel, ABC):
             if "--window-size" in started_config:
                 raise ValueError("You cannot change the window size in your provided driver config")
         options = configure_options(data["driver_config"] + DRIVERS_DEFAULT_CONFIG)
-        data["driver"] = uc.Chrome(options=options, headless=True)
+        data["driver"] = uc.Chrome(options=options, headless=False)
         return data
 
     @property
@@ -225,7 +225,7 @@ class GPTChrome(LLMChrome):
             except TimeoutException:
                 current_url = self.driver.current_url
                 self.driver.quit()
-                self.driver = uc.Chrome(options=configure_options(self.driver_config + DRIVERS_DEFAULT_CONFIG), headless=True)
+                self.driver = uc.Chrome(options=configure_options(self.driver_config + DRIVERS_DEFAULT_CONFIG), headless=False)
                 self.run_manager.on_text(text="Captacha Detected on ChatGPT. Starting Annoymous Session", verbose=self.verbose)
                 self.driver.get(current_url)
 
@@ -348,6 +348,9 @@ class MistralChrome(LLMChrome):
                     EC.element_to_be_clickable((By.XPATH, self._elements_identifier["Login_Button"]))
                 )
                 login_button.click()
+                WebDriverWait(self.driver, self.waiting_time).until(
+                    EC.presence_of_element_located((By.XPATH, self._elements_identifier["Prompt_Text_Area"]))
+                )
                 self.run_manager.on_text(text=f"Login succeed on attempt no. {i+1}", verbose=self.verbose)
                 return True
             except TimeoutException:
