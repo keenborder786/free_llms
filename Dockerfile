@@ -3,7 +3,7 @@ FROM knthony/run_chrome_driver_in_container
 RUN pip install poetry==1.8.3
 
 ENV POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_IN_PROJECT=1  ~\
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
     POETRY_VIRTUALENVS_CREATE=1
 
 RUN mkdir free_llms
