@@ -7,7 +7,7 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.8.1,<4.0"
+python = ">=3.9,<4.0"
 langchain = "^0.2.1"
 beautifulsoup4 = "^4.12.3"
 selenium = "^4.21.0"
@@ -20,6 +20,7 @@ langchain-community = "^0.2.3"
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.7"
 mypy = "^1.10.0"
+pytest = "^8.2.2"
 
 [tool.ruff]
 line-length = 150
@@ -36,6 +37,8 @@ select = [
 disallow_untyped_defs = "True"
 disable_error_code = ["import-untyped"]
 
+[tool.pytest.ini_options]
+pythonpath = ["./src"]
 
 [build-system]
 requires = ["poetry-core"]

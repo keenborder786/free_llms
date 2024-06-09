@@ -1,6 +1,7 @@
 import io
 import time
 import uuid
+import os
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -25,6 +26,8 @@ class LLMChrome(BaseModel, ABC):
 
     This class defines the interface for creating a Chrome-based interaction with a language model for a single session.
 
+    You can also explicitly set up your chrome browser version by the env variable `CHROME_VERSION`.
+    
     Methods:
     login(email: str, password: str, waiting_time: int = 10) -> bool:
         Logs into the language model interface using the provided email and password.
@@ -93,7 +96,7 @@ class LLMChrome(BaseModel, ABC):
             if "--window-size" in started_config:
                 raise ValueError("You cannot change the window size in your provided driver config")
         options = configure_options(data["driver_config"] + DRIVERS_DEFAULT_CONFIG)
-        data["driver"] = uc.Chrome(options=options, headless=False)
+        data["driver"] = uc.Chrome(version_main=os.environ.get('CHROME_VERSION',None), options=options, headless=True)
         return data
 
     @property
@@ -225,7 +228,7 @@ class GPTChrome(LLMChrome):
             except TimeoutException:
                 current_url = self.driver.current_url
                 self.driver.quit()
-                self.driver = uc.Chrome(options=configure_options(self.driver_config + DRIVERS_DEFAULT_CONFIG), headless=False)
+                self.driver = uc.Chrome(options=configure_options(self.driver_config + DRIVERS_DEFAULT_CONFIG), headless=True)
                 self.run_manager.on_text(text="Captacha Detected on ChatGPT. Starting Annoymous Session", verbose=self.verbose)
                 self.driver.get(current_url)
 
