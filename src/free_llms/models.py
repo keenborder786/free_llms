@@ -95,7 +95,7 @@ class LLMChrome(BaseModel, ABC):
             if "--window-size" in started_config:
                 raise ValueError("You cannot change the window size in your provided driver config")
         options = configure_options(data["driver_config"] + DRIVERS_DEFAULT_CONFIG)
-        data["driver"] = uc.Chrome(options=options, headless=True)
+        data["driver"] = uc.Chrome(options=options, headless=False)
         return data
 
     @property
@@ -227,7 +227,7 @@ class GPTChrome(LLMChrome):
             except TimeoutException:
                 current_url = self.driver.current_url
                 self.driver.quit()
-                self.driver = uc.Chrome(options=configure_options(self.driver_config + DRIVERS_DEFAULT_CONFIG), headless=True)
+                self.driver = uc.Chrome(options=configure_options(self.driver_config + DRIVERS_DEFAULT_CONFIG), headless=False)
                 self.run_manager.on_text(text="Captacha Detected on ChatGPT. Starting Annoymous Session", verbose=self.verbose)
                 self.driver.get(current_url)
 
@@ -382,3 +382,61 @@ class MistralChrome(LLMChrome):
         self.run_manager.on_text(text=f"Mistral responded with {len(raw_message)} characters", verbose=self.verbose)
         self.messages.append((HumanMessage(content=query), AIMessage(content=raw_message)))
         return AIMessage(content=raw_message)
+
+class ClaudeChrome(LLMChrome):
+    
+
+    @property
+    def _model_url(self) -> str:
+        return "https://claude.ai/login"
+    
+    @property
+    def _elements_identifier(self) -> Dict[str, str]:
+        return {
+            "Email": '//*[@id="email"]',
+            "Login_Button": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/button",
+            "Login_Code": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/div[3]/input",
+            "Login_Code_Confirmation":"/html/body/div[2]/div/main/div[1]/div/div[1]/form/button",
+            "Starting_Prompt_Text_Area":"/html/body/div[2]/div/main/div[1]/div[2]/div[1]/div/div/fieldset",
+            "Prompt_Text_Area_Output":"/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[1]/div[{current}]/div/div/div[1]/div/div/p",
+            "Prompt_Text_Area":"/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset",
+            "Initial_Prompt_Text_Area_Submit":"/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[2]/div[2]/div/button",
+            "Prompt_Text_Area_Submit":"/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[2]/div[2]/div/button"
+        }
+    def login(self, retries_attempt: int) -> bool:
+        self.driver.get(self._model_url)
+        for i in range(retries_attempt):
+            self.run_manager.on_text(text=f"Making login attempt no. {i+1} on Claude", verbose=self.verbose)
+            try:
+                login_button = WebDriverWait(self.driver, self.waiting_time).until(
+                        EC.presence_of_element_located((By.XPATH, self._elements_identifier["Login_Button"]))
+                    )
+                login_button.click()
+                email_input = WebDriverWait(self.driver, self.waiting_time).until(
+                        EC.presence_of_element_located((By.XPATH, self._elements_identifier["Email"]))
+                    )
+                email_input.clear()
+                email_input.send_keys(self.email)
+                time.sleep(3)
+                login_button.click()
+                login_code =  WebDriverWait(self.driver, self.waiting_time).until(
+                        EC.presence_of_element_located((By.XPATH, self._elements_identifier["Login_Code"]))
+                    )
+                input_code = input(f'Please open your email {self.email} and type in verification code:')
+                login_code.send_keys(input_code)
+                login_code.submit()
+                self.run_manager.on_text(text=f"Login succeed on attempt no. {i+1}", verbose=self.verbose)
+            except TimeoutException:
+                continue
+        return True
+    def send_prompt(self, query: str) -> AIMessage:
+        pass
+        
+
+
+            
+            
+
+            
+    
+
