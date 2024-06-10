@@ -1,7 +1,6 @@
 import io
 import time
 import uuid
-import os
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -27,7 +26,7 @@ class LLMChrome(BaseModel, ABC):
     This class defines the interface for creating a Chrome-based interaction with a language model for a single session.
 
     You can also explicitly set up your chrome browser version by the env variable `CHROME_VERSION`.
-    
+
     Methods:
     login(email: str, password: str, waiting_time: int = 10) -> bool:
         Logs into the language model interface using the provided email and password.
