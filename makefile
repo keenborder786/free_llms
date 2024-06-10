@@ -6,3 +6,6 @@ lint:
 format:
 	poetry run ruff format $(PYTHON_FILES)
 	poetry run ruff --select I --fix $(PYTHON_FILES)
+
+test:
+	poetry run pytest

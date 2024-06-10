@@ -25,6 +25,8 @@ class LLMChrome(BaseModel, ABC):
 
     This class defines the interface for creating a Chrome-based interaction with a language model for a single session.
 
+    You can also explicitly set up your chrome browser version by the env variable `CHROME_VERSION`.
+
     Methods:
     login(email: str, password: str, waiting_time: int = 10) -> bool:
         Logs into the language model interface using the provided email and password.
@@ -348,6 +350,9 @@ class MistralChrome(LLMChrome):
                     EC.element_to_be_clickable((By.XPATH, self._elements_identifier["Login_Button"]))
                 )
                 login_button.click()
+                WebDriverWait(self.driver, self.waiting_time).until(
+                    EC.presence_of_element_located((By.XPATH, self._elements_identifier["Prompt_Text_Area"]))
+                )
                 self.run_manager.on_text(text=f"Login succeed on attempt no. {i+1}", verbose=self.verbose)
                 return True
             except TimeoutException:
