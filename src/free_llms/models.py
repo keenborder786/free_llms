@@ -96,7 +96,7 @@ class LLMChrome(BaseModel, ABC):
             if "--window-size" in started_config:
                 raise ValueError("You cannot change the window size in your provided driver config")
         options = configure_options(data["driver_config"] + DRIVERS_DEFAULT_CONFIG)
-        data["driver"] = uc.Chrome(version_main=os.environ.get('CHROME_VERSION',None), options=options, headless=True)
+        data["driver"] = uc.Chrome(options=options, headless=True)
         return data
 
     @property
