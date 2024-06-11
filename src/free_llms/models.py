@@ -382,3 +382,84 @@ class MistralChrome(LLMChrome):
         self.run_manager.on_text(text=f"Mistral responded with {len(raw_message)} characters", verbose=self.verbose)
         self.messages.append((HumanMessage(content=query), AIMessage(content=raw_message)))
         return AIMessage(content=raw_message)
+
+
+class ClaudeChrome(LLMChrome):
+    message_box_jump: int = 2
+    """For the Claude Chrome, the starting message box is at 2"""
+
+    @property
+    def _model_url(self) -> str:
+        return "https://claude.ai/login"
+
+    @property
+    def _elements_identifier(self) -> Dict[str, str]:
+        return {
+            "Email": '//*[@id="email"]',
+            "Login_Button": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/button",
+            "Login_Code": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/div[3]/input",
+            "Login_Code_Confirmation": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/button",
+            "Start_Chat_Button": "/html/body/div[2]/div/main/div[1]/div[2]/div[1]/div/div/fieldset/div/div[2]/div[2]/button",
+            "Prompt_Text_Area": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[1]/div/div/div/div/p", # noqa: E501
+            "Prompt_Text_Area_Submit": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[2]/div[2]/div/button", # noqa: E501
+            "Prompt_Text_Area_Output": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[1]/div[{current}]/div/div/div[1]/div/div",
+        }
+
+    def login(self, retries_attempt: int) -> bool:
+        self.driver.get(self._model_url)
+        for i in range(retries_attempt):
+            self.run_manager.on_text(text=f"Making login attempt no. {i+1} on Claude", verbose=self.verbose)
+            try:
+                email_input = WebDriverWait(self.driver, self.waiting_time).until(
+                    EC.presence_of_element_located((By.XPATH, self._elements_identifier["Email"]))
+                )
+                email_input.clear()
+                email_input.send_keys(self.email)
+                login_button = WebDriverWait(self.driver, self.waiting_time).until(
+                    EC.presence_of_element_located((By.XPATH, self._elements_identifier["Login_Button"]))
+                )
+                login_button.click()
+                login_code = WebDriverWait(self.driver, self.waiting_time).until(
+                    EC.presence_of_element_located((By.XPATH, self._elements_identifier["Login_Code"]))
+                )
+                input_code = input(f"Please open your email {self.email} and type in verification code:")
+                login_code.send_keys(input_code)
+                login_code_confirmation = WebDriverWait(self.driver, self.waiting_time).until(
+                    EC.presence_of_element_located((By.XPATH, self._elements_identifier["Login_Code_Confirmation"]))
+                )
+                login_code_confirmation.click()
+                self.run_manager.on_text(text=f"Login succeed on attempt no. {i+1}", verbose=self.verbose)
+                return True
+            except TimeoutException:
+                continue
+        return False
+
+    def send_prompt(self, query: str) -> AIMessage:
+        try:
+            start_chat_button = WebDriverWait(self.driver, self.waiting_time).until(
+                EC.presence_of_element_located((By.XPATH, self._elements_identifier["Start_Chat_Button"]))
+            )
+            start_chat_button.click()
+        except TimeoutException:
+            pass
+        prompt_text_area = WebDriverWait(self.driver, self.waiting_time).until(
+            EC.presence_of_element_located((By.XPATH, self._elements_identifier["Prompt_Text_Area"]))
+        )
+        self.driver.execute_script(f"arguments[0].innerText = '{query}'", prompt_text_area)
+
+        prompt_text_area_submit = WebDriverWait(self.driver, self.waiting_time).until(
+            EC.presence_of_element_located((By.XPATH, self._elements_identifier["Prompt_Text_Area_Submit"]))
+        )
+        prompt_text_area_submit.click()
+        time.sleep(self.waiting_time)
+        current_n, prev_n = 0, -1
+        while current_n != prev_n:
+            prev_n = current_n
+            streaming = self.driver.find_element(By.XPATH, self._elements_identifier["Prompt_Text_Area_Output"].format(current=self.message_box_jump))
+            raw_message = streaming.get_attribute("innerHTML")
+            self.run_manager.on_text(text="Claude is responding", verbose=self.verbose)
+            current_n = len(raw_message) if raw_message is not None else 0
+        self.message_box_jump += 2
+        self.run_manager.on_text(text=f"Claude responded with {len(raw_message)} characters", verbose=self.verbose)
+        self.messages.append((HumanMessage(content=query), AIMessage(content=raw_message)))
+        return AIMessage(content=raw_message)
