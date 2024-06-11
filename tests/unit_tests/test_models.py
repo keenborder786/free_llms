@@ -1,6 +1,6 @@
 import pytest
 
-from free_llms.models import PreplexityChrome,GPTChrome,MistralChrome,AIMessage
+from free_llms.models import PreplexityChrome,GPTChrome,MistralChrome,ClaudeChrome,AIMessage
 
 
 
@@ -70,3 +70,27 @@ def test_mistral_chrome():
             "Prompt_Text_Area_Output": "/html/body/div[1]/div[2]/div[2]/div/div[1]/div[1]/div[{current}]/div[2]/div[1]",
         }
     assert MistralChrome(driver_config=[], email = 'wrong_email', password = 'wrong_password')._model_url == 'https://chat.mistral.ai/chat'
+
+
+def test_claude_chrome():
+    with pytest.raises(ValueError, match="Cannot Login given the credentials"):
+        with ClaudeChrome(driver_config=[],
+                email = 'wrong_email',
+                password = 'wrong_password',
+                retries_attempt=1
+                ) as session: # A single session started with ChartGPT
+            pass
+    assert ClaudeChrome(
+            driver_config=[],
+            email = 'wrong_email',
+            password = 'wrong_password')._elements_identifier == {
+            "Email": '//*[@id="email"]',
+            "Login_Button": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/button",
+            "Login_Code": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/div[3]/input",
+            "Login_Code_Confirmation": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/button",
+            "Start_Chat_Button": "/html/body/div[2]/div/main/div[1]/div[2]/div[1]/div/div/fieldset/div/div[2]/div[2]/button",
+            "Prompt_Text_Area": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[1]/div/div/div/div/p", # noqa: E501
+            "Prompt_Text_Area_Submit": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[2]/div[2]/div/button", # noqa: E501
+            "Prompt_Text_Area_Output": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[1]/div[{current}]/div/div/div[1]/div/div",
+        }
+    assert ClaudeChrome(driver_config=[], email = 'wrong_email', password = 'wrong_password')._model_url == 'https://claude.ai/login'

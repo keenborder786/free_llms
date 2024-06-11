@@ -95,7 +95,7 @@ class LLMChrome(BaseModel, ABC):
             if "--window-size" in started_config:
                 raise ValueError("You cannot change the window size in your provided driver config")
         options = configure_options(data["driver_config"] + DRIVERS_DEFAULT_CONFIG)
-        data["driver"] = uc.Chrome(options=options, headless=False)
+        data["driver"] = uc.Chrome(options=options, headless=True)
         return data
 
     @property
@@ -386,7 +386,7 @@ class MistralChrome(LLMChrome):
 
 class ClaudeChrome(LLMChrome):
     message_box_jump: int = 2
-    """For the Cluade Chrome, the starting message box is at 2"""
+    """For the Claude Chrome, the starting message box is at 2"""
 
     @property
     def _model_url(self) -> str:
