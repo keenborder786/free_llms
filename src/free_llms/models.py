@@ -227,7 +227,7 @@ class GPTChrome(LLMChrome):
             except TimeoutException:
                 current_url = self.driver.current_url
                 self.driver.quit()
-                self.driver = uc.Chrome(options=configure_options(self.driver_config + DRIVERS_DEFAULT_CONFIG), headless=False)
+                self.driver = uc.Chrome(options=configure_options(self.driver_config + DRIVERS_DEFAULT_CONFIG), headless=True)
                 self.run_manager.on_text(text="Captacha Detected on ChatGPT. Starting Annoymous Session", verbose=self.verbose)
                 self.driver.get(current_url)
 
@@ -397,40 +397,49 @@ class ClaudeChrome(LLMChrome):
             "Login_Button": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/button",
             "Login_Code": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/div[3]/input",
             "Login_Code_Confirmation":"/html/body/div[2]/div/main/div[1]/div/div[1]/form/button",
-            "Starting_Prompt_Text_Area":"/html/body/div[2]/div/main/div[1]/div[2]/div[1]/div/div/fieldset",
-            "Prompt_Text_Area_Output":"/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[1]/div[{current}]/div/div/div[1]/div/div/p",
-            "Prompt_Text_Area":"/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset",
-            "Initial_Prompt_Text_Area_Submit":"/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[2]/div[2]/div/button",
-            "Prompt_Text_Area_Submit":"/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[2]/div[2]/div/button"
-        }
+            "Start_Chat_Button":"/html/body/div[2]/div/main/div[1]/div[2]/div[1]/div/div/fieldset/div/div[2]/div[2]/button",
+            "Prompt_Text_Area":"/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[1]/div/div/div/div/p"
+            }
     def login(self, retries_attempt: int) -> bool:
         self.driver.get(self._model_url)
         for i in range(retries_attempt):
             self.run_manager.on_text(text=f"Making login attempt no. {i+1} on Claude", verbose=self.verbose)
             try:
-                login_button = WebDriverWait(self.driver, self.waiting_time).until(
-                        EC.presence_of_element_located((By.XPATH, self._elements_identifier["Login_Button"]))
-                    )
-                login_button.click()
                 email_input = WebDriverWait(self.driver, self.waiting_time).until(
                         EC.presence_of_element_located((By.XPATH, self._elements_identifier["Email"]))
                     )
                 email_input.clear()
                 email_input.send_keys(self.email)
-                time.sleep(3)
+                login_button = WebDriverWait(self.driver, self.waiting_time).until(
+                        EC.presence_of_element_located((By.XPATH, self._elements_identifier["Login_Button"]))
+                    )
                 login_button.click()
                 login_code =  WebDriverWait(self.driver, self.waiting_time).until(
                         EC.presence_of_element_located((By.XPATH, self._elements_identifier["Login_Code"]))
                     )
                 input_code = input(f'Please open your email {self.email} and type in verification code:')
                 login_code.send_keys(input_code)
-                login_code.submit()
+                login_code_confirmation =  WebDriverWait(self.driver, self.waiting_time).until(
+                        EC.presence_of_element_located((By.XPATH, self._elements_identifier["Login_Code_Confirmation"]))
+                    )
+                login_code_confirmation.click()
                 self.run_manager.on_text(text=f"Login succeed on attempt no. {i+1}", verbose=self.verbose)
+                return True
             except TimeoutException:
                 continue
-        return True
+        return False
     def send_prompt(self, query: str) -> AIMessage:
-        pass
+        
+        start_chat_button = WebDriverWait(self.driver, self.waiting_time).until(
+                        EC.presence_of_element_located((By.XPATH, self._elements_identifier["Start_Chat_Button"]))
+                    )
+        start_chat_button.click()
+        prompt_text_area = WebDriverWait(self.driver, self.waiting_time).until(
+                        EC.presence_of_element_located((By.XPATH, self._elements_identifier["Prompt_Text_Area"]))
+                    )
+        self.driver.execute_script(f"arguments[0].innerText = '{query}'", prompt_text_area)
+
+        time.sleep(100)
         
 
 
