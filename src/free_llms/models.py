@@ -116,7 +116,7 @@ class LLMChrome(BaseModel, ABC):
         return self.messages
 
     @abstractmethod
-    def login(self, retries_attempt: int) -> bool:
+    def login(self, retries_attempt: int = 3) -> bool:
         """
         Logs into LLM Provider Browser using the provided email and password.
         No Social Logins e.g Google etc
@@ -186,7 +186,7 @@ class GPTChrome(LLMChrome):
             "Prompt_Text_Output": '//*[@id="__next"]/div[1]/div[2]/main/div[2]/div[1]/div/div/div/div/div[{current}]/div/div/div[2]/div[2]/div[1]/div/div',  # noqa: E501
         }
 
-    def login(self, retries_attempt: int) -> bool:
+    def login(self, retries_attempt: int = 3) -> bool:
         self.driver.get(self._model_url)
         for i in range(retries_attempt):
             self.run_manager.on_text(text=f"Making login attempt no. {i+1} on ChatGPT", verbose=self.verbose)
@@ -267,7 +267,7 @@ class PreplexityChrome(LLMChrome):
             "App_Download_Button": "/html/body/div[1]/main/div[3]/div/div/div/div[2]/div[1]/div/div/button",
         }
 
-    def login(self, retries_attempt: int) -> bool:
+    def login(self, retries_attempt: int = 3) -> bool:
         """With Perplexity we are going to stick to anonymous session"""
         return True
 
@@ -329,7 +329,7 @@ class MistralChrome(LLMChrome):
             "Prompt_Text_Area_Output": "/html/body/div[1]/div[2]/div[2]/div/div[1]/div[1]/div[{current}]/div[2]/div[1]",
         }
 
-    def login(self, retries_attempt: int) -> bool:
+    def login(self, retries_attempt: int = 3) -> bool:
         self.driver.get(self._model_url)
 
         for i in range(retries_attempt):
@@ -405,7 +405,7 @@ class ClaudeChrome(LLMChrome):
             "Prompt_Text_Area_Output": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[1]/div[{current}]/div/div/div[1]/div/div",
         }
 
-    def login(self, retries_attempt: int) -> bool:
+    def login(self, retries_attempt: int = 3) -> bool:
         self.driver.get(self._model_url)
         for i in range(retries_attempt):
             self.run_manager.on_text(text=f"Making login attempt no. {i+1} on Claude", verbose=self.verbose)
