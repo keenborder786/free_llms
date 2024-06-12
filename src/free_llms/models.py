@@ -400,8 +400,8 @@ class ClaudeChrome(LLMChrome):
             "Login_Code": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/div[3]/input",
             "Login_Code_Confirmation": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/button",
             "Start_Chat_Button": "/html/body/div[2]/div/main/div[1]/div[2]/div[1]/div/div/fieldset/div/div[2]/div[2]/button",
-            "Prompt_Text_Area": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[1]/div/div/div/div/p", # noqa: E501
-            "Prompt_Text_Area_Submit": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[2]/div[2]/div/button", # noqa: E501
+            "Prompt_Text_Area": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[1]/div/div/div/div/p",  # noqa: E501
+            "Prompt_Text_Area_Submit": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[2]/div[2]/div/button",  # noqa: E501
             "Prompt_Text_Area_Output": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[1]/div[{current}]/div/div/div[1]/div/div",
         }
 
