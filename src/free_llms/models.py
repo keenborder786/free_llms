@@ -1,4 +1,5 @@
 import io
+import os
 import time
 import uuid
 from abc import ABC, abstractmethod
@@ -59,7 +60,7 @@ class LLMChrome(BaseModel, ABC):
     """Optional list of callback handlers (or callback manager). Defaults to None."""
     run_manager: RunManager
     """Run Manager that manages and callbacks various events from the given callbacks"""
-    verbose: bool = True
+    verbosity: bool = True
     """Whether you want to print logs. Defaults to True"""
     message_box_jump: int = 2
     """For some models we need to increment this to get the next message in the current session from the selnium elements visible on screen"""
@@ -95,7 +96,10 @@ class LLMChrome(BaseModel, ABC):
             if "--window-size" in started_config:
                 raise ValueError("You cannot change the window size in your provided driver config")
         options = configure_options(data["driver_config"] + DRIVERS_DEFAULT_CONFIG)
-        data["driver"] = uc.Chrome(options=options, headless=True)
+        _chrome_version = os.environ.get("CHROME_VERSION", None)
+        data["driver"] = uc.Chrome(
+            options=options, version_main=int(_chrome_version) if _chrome_version is not None else _chrome_version, headless=True
+        )
         return data
 
     @property
@@ -116,7 +120,7 @@ class LLMChrome(BaseModel, ABC):
         return self.messages
 
     @abstractmethod
-    def login(self, retries_attempt: int) -> bool:
+    def login(self, retries_attempt: int = 3) -> bool:
         """
         Logs into LLM Provider Browser using the provided email and password.
         No Social Logins e.g Google etc
@@ -183,13 +187,13 @@ class GPTChrome(LLMChrome):
             "Email_Continue": "action",
             "Password": '//*[@id="password"]',
             "Prompt_Text_Area": "prompt-textarea",
-            "Prompt_Text_Output": '//*[@id="__next"]/div[1]/div[2]/main/div[2]/div[1]/div/div/div/div/div[{current}]/div/div/div[2]/div[2]/div[1]/div/div',  # noqa: E501
+            "Prompt_Text_Output": '//*[@id="__next"]/div[1]/div[2]/main/div[2]/div[1]/div/div/div/div[{current}]/div/div/div[2]/div[2]/div[1]/div/div',  # noqa: E501
         }
 
-    def login(self, retries_attempt: int) -> bool:
+    def login(self, retries_attempt: int = 3) -> bool:
         self.driver.get(self._model_url)
         for i in range(retries_attempt):
-            self.run_manager.on_text(text=f"Making login attempt no. {i+1} on ChatGPT", verbose=self.verbose)
+            self.run_manager.on_text(text=f"Making login attempt no. {i+1} on ChatGPT", verbose=self.verbosity)
             try:
                 login_button = WebDriverWait(self.driver, self.waiting_time).until(
                     EC.element_to_be_clickable((By.XPATH, self._elements_identifier["Login"]))
@@ -211,7 +215,7 @@ class GPTChrome(LLMChrome):
                 password_button.click()
                 password_button.send_keys(self.password)
                 password_button.submit()
-                self.run_manager.on_text(text=f"Login succeed on attempt no. {i+1}", verbose=self.verbose)
+                self.run_manager.on_text(text=f"Login succeed on attempt no. {i+1}", verbose=self.verbosity)
                 return True
             except TimeoutException:
                 continue
@@ -227,13 +231,19 @@ class GPTChrome(LLMChrome):
             except TimeoutException:
                 current_url = self.driver.current_url
                 self.driver.quit()
-                self.driver = uc.Chrome(options=configure_options(self.driver_config + DRIVERS_DEFAULT_CONFIG), headless=True)
-                self.run_manager.on_text(text="Captacha Detected on ChatGPT. Starting Annoymous Session", verbose=self.verbose)
+                _chrome_version = os.environ.get("CHROME_VERSION", None)
+
+                self.driver = uc.Chrome(
+                    options=configure_options(self.driver_config + DRIVERS_DEFAULT_CONFIG),
+                    version_main=int(_chrome_version) if _chrome_version is not None else _chrome_version,
+                    headless=True,
+                )
+                self.run_manager.on_text(text="Captacha Detected on ChatGPT. Starting Annoymous Session", verbose=self.verbosity)
                 self.driver.get(current_url)
 
         text_area.click()
         text_area.send_keys(query)
-        self.run_manager.on_text(text=f"Human Message: {query} send to ChatGPT", verbose=self.verbose)
+        self.run_manager.on_text(text=f"Human Message: {query} send to ChatGPT", verbose=self.verbosity)
         text_area.submit()
         raw_message = ""
         time.sleep(self.waiting_time)  # Wait for the query to be processed
@@ -242,10 +252,10 @@ class GPTChrome(LLMChrome):
             prev_n = current_n
             streaming = self.driver.find_element(By.XPATH, self._elements_identifier["Prompt_Text_Output"].format(current=self.message_box_jump))
             raw_message = streaming.get_attribute("innerHTML")
-            self.run_manager.on_text(text="ChatGPT is responding", verbose=self.verbose)
+            self.run_manager.on_text(text="ChatGPT is responding", verbose=self.verbosity)
             current_n = len(raw_message) if raw_message is not None else 0
         self.message_box_jump += 2
-        self.run_manager.on_text(text=f"ChatGPT responded with {len(raw_message)} characters", verbose=self.verbose)
+        self.run_manager.on_text(text=f"ChatGPT responded with {len(raw_message)} characters", verbose=self.verbosity)
         self.messages.append((HumanMessage(content=query), AIMessage(content=raw_message)))
         return AIMessage(content=raw_message)
 
@@ -267,7 +277,7 @@ class PreplexityChrome(LLMChrome):
             "App_Download_Button": "/html/body/div[1]/main/div[3]/div/div/div/div[2]/div[1]/div/div/button",
         }
 
-    def login(self, retries_attempt: int) -> bool:
+    def login(self, retries_attempt: int = 3) -> bool:
         """With Perplexity we are going to stick to anonymous session"""
         return True
 
@@ -283,7 +293,7 @@ class PreplexityChrome(LLMChrome):
             EC.element_to_be_clickable((By.CSS_SELECTOR, self._elements_identifier["Prompt_Text_Area_Submit"]))
         )
         text_area_submit.click()
-        self.run_manager.on_text(text=f"Human Message: {query} send to Preplexity", verbose=self.verbose)
+        self.run_manager.on_text(text=f"Human Message: {query} send to Preplexity", verbose=self.verbosity)
         raw_message: Optional[str] = ""
         while True:
             try:
@@ -301,10 +311,10 @@ class PreplexityChrome(LLMChrome):
                     app_download_button.click()
                 except NoSuchElementException:
                     continue
-            self.run_manager.on_text(text="Preplexity is responding", verbose=self.verbose)
+            self.run_manager.on_text(text="Preplexity is responding", verbose=self.verbosity)
         if raw_message is None:
             raw_message = ""
-        self.run_manager.on_text(text=f"Preplexity responded with {len(raw_message)} characters", verbose=self.verbose)
+        self.run_manager.on_text(text=f"Preplexity responded with {len(raw_message)} characters", verbose=self.verbosity)
         processed_message = BeautifulSoup(io.StringIO(raw_message)).get_text()
         self.messages.append((HumanMessage(content=query), AIMessage(content=processed_message)))
         return AIMessage(content=processed_message)
@@ -329,11 +339,11 @@ class MistralChrome(LLMChrome):
             "Prompt_Text_Area_Output": "/html/body/div[1]/div[2]/div[2]/div/div[1]/div[1]/div[{current}]/div[2]/div[1]",
         }
 
-    def login(self, retries_attempt: int) -> bool:
+    def login(self, retries_attempt: int = 3) -> bool:
         self.driver.get(self._model_url)
 
         for i in range(retries_attempt):
-            self.run_manager.on_text(text=f"Making login attempt no. {i+1} on Mistral", verbose=self.verbose)
+            self.run_manager.on_text(text=f"Making login attempt no. {i+1} on Mistral", verbose=self.verbosity)
             try:
                 email_input = WebDriverWait(self.driver, self.waiting_time).until(
                     EC.presence_of_element_located((By.ID, self._elements_identifier["Email"]))
@@ -353,7 +363,7 @@ class MistralChrome(LLMChrome):
                 WebDriverWait(self.driver, self.waiting_time).until(
                     EC.presence_of_element_located((By.XPATH, self._elements_identifier["Prompt_Text_Area"]))
                 )
-                self.run_manager.on_text(text=f"Login succeed on attempt no. {i+1}", verbose=self.verbose)
+                self.run_manager.on_text(text=f"Login succeed on attempt no. {i+1}", verbose=self.verbosity)
                 return True
             except TimeoutException:
                 continue
@@ -375,11 +385,11 @@ class MistralChrome(LLMChrome):
             prev_n = current_n
             streaming = self.driver.find_element(By.XPATH, self._elements_identifier["Prompt_Text_Area_Output"].format(current=self.message_box_jump))
             raw_message = streaming.get_attribute("innerHTML")
-            self.run_manager.on_text(text="Mistral is responding", verbose=self.verbose)
+            self.run_manager.on_text(text="Mistral is responding", verbose=self.verbosity)
             current_n = len(raw_message) if raw_message is not None else 0
 
         self.message_box_jump += 2
-        self.run_manager.on_text(text=f"Mistral responded with {len(raw_message)} characters", verbose=self.verbose)
+        self.run_manager.on_text(text=f"Mistral responded with {len(raw_message)} characters", verbose=self.verbosity)
         self.messages.append((HumanMessage(content=query), AIMessage(content=raw_message)))
         return AIMessage(content=raw_message)
 
@@ -400,15 +410,15 @@ class ClaudeChrome(LLMChrome):
             "Login_Code": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/div[3]/input",
             "Login_Code_Confirmation": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/button",
             "Start_Chat_Button": "/html/body/div[2]/div/main/div[1]/div[2]/div[1]/div/div/fieldset/div/div[2]/div[2]/button",
-            "Prompt_Text_Area": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[1]/div/div/div/div/p", # noqa: E501
-            "Prompt_Text_Area_Submit": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[2]/div[2]/div/button", # noqa: E501
+            "Prompt_Text_Area": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[1]/div/div/div/div/p",  # noqa: E501
+            "Prompt_Text_Area_Submit": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[2]/div[2]/div/button",  # noqa: E501
             "Prompt_Text_Area_Output": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[1]/div[{current}]/div/div/div[1]/div/div",
         }
 
-    def login(self, retries_attempt: int) -> bool:
+    def login(self, retries_attempt: int = 3) -> bool:
         self.driver.get(self._model_url)
         for i in range(retries_attempt):
-            self.run_manager.on_text(text=f"Making login attempt no. {i+1} on Claude", verbose=self.verbose)
+            self.run_manager.on_text(text=f"Making login attempt no. {i+1} on Claude", verbose=self.verbosity)
             try:
                 email_input = WebDriverWait(self.driver, self.waiting_time).until(
                     EC.presence_of_element_located((By.XPATH, self._elements_identifier["Email"]))
@@ -428,7 +438,7 @@ class ClaudeChrome(LLMChrome):
                     EC.presence_of_element_located((By.XPATH, self._elements_identifier["Login_Code_Confirmation"]))
                 )
                 login_code_confirmation.click()
-                self.run_manager.on_text(text=f"Login succeed on attempt no. {i+1}", verbose=self.verbose)
+                self.run_manager.on_text(text=f"Login succeed on attempt no. {i+1}", verbose=self.verbosity)
                 return True
             except TimeoutException:
                 continue
@@ -457,9 +467,9 @@ class ClaudeChrome(LLMChrome):
             prev_n = current_n
             streaming = self.driver.find_element(By.XPATH, self._elements_identifier["Prompt_Text_Area_Output"].format(current=self.message_box_jump))
             raw_message = streaming.get_attribute("innerHTML")
-            self.run_manager.on_text(text="Claude is responding", verbose=self.verbose)
+            self.run_manager.on_text(text="Claude is responding", verbose=self.verbosity)
             current_n = len(raw_message) if raw_message is not None else 0
         self.message_box_jump += 2
-        self.run_manager.on_text(text=f"Claude responded with {len(raw_message)} characters", verbose=self.verbose)
+        self.run_manager.on_text(text=f"Claude responded with {len(raw_message)} characters", verbose=self.verbosity)
         self.messages.append((HumanMessage(content=query), AIMessage(content=raw_message)))
         return AIMessage(content=raw_message)
