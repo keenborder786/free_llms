@@ -9,9 +9,9 @@ from free_llms.models import ClaudeChrome, GPTChrome, MistralChrome, PreplexityC
 
 class FreeLLMs(LLM):
     model_name: Optional[str] = None
-    """One of the following model names to choose from: GPTChrome,PreplexityChrome,,ClaudeChrome"""
+    """One of the following model names to choose from: GPTChrome,PreplexityChrome,MistralChrome,ClaudeChrome"""
     llm_kwargs: Dict[str, Any]
-    """Keyword arguments to be passed to free_llms.models.LLMChrMistralChromeome"""
+    """Keyword arguments to be passed to free_llms.models.LLMChrome"""
 
     @root_validator()
     def start_model(cls, values: Dict) -> Dict:

@@ -97,6 +97,23 @@ with ClaudeChrome(driver_config=driver_config,
 ```
 
 
+
+## Integration with Langchain
+
+```python
+from free_llms.langchain_model import FreeLLMs
+from langchain.prompts import PromptTemplate
+# model name can be any of the following: GPTChrome,PreplexityChrome,MistralChrome,ClaudeChrome
+model = FreeLLMs(model_name = 'PreplexityChrome', llm_kwargs = {
+              'driver_config':[],
+               'email':'email',
+               'password':''})
+
+prompt = PromptTemplate.from_template('Write me a joke about {topic}')
+chain =  prompt | model | str
+print(chain.invoke({'topic':'coding'}))
+
+```
 ## Note:
 
 - Free_LLMs only uses a `Patched Chrome Driver` as it's main driver. The driver can be found [here](https://github.com/ultrafunkamsterdam/undetected-chromedriver/tree/master)
