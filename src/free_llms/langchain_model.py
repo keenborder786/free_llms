@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional
 
 from langchain_core.callbacks import CallbackManagerForLLMRun
 from langchain_core.language_models.llms import LLM
-from langchain_core.pydantic_v1 import root_validator
+from langchain_core.pydantic_v1 import Extra, root_validator
 
 from free_llms.models import ClaudeChrome, GPTChrome, MistralChrome, PreplexityChrome
 
@@ -19,9 +19,14 @@ class FreeLLMs(LLM):
 
         models = {"GPTChrome": GPTChrome, "PreplexityChrome": PreplexityChrome, "MistralChrome": MistralChrome, "ClaudeChrome": ClaudeChrome}
         if values["model_name"] not in models:
-            raise ValueError(f'The given model {values['model_name']} is not correct. Please pass one of the following {list(models.keys())}')
-        values["client"] = models[values["model_name"]](values["llm_kwargs"])
+            raise ValueError(f'The given model {values["model_name"]} is not correct. Please pass one of the following {list(models.keys())}')
+        values["client"] = models[values["model_name"]](**values["llm_kwargs"])
         return values
+
+    @property
+    def _llm_type(self) -> str:
+        """Return type of llm."""
+        return "free_llms"
 
     def _call(
         self,
@@ -30,6 +35,8 @@ class FreeLLMs(LLM):
         run_manager: Optional[CallbackManagerForLLMRun] = None,
         **kwargs: Any,
     ) -> str:
-        self.client.login()
-        self.client.send_prompt(prompt).content
+        if not self.client.login():
+            raise ValueError("Cannot Login given the credentials")
+        answer = self.client.send_prompt(prompt).content
         self.client.driver.quit()
+        return answer
