@@ -1,13 +1,15 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type, Union
 
 from langchain_core.callbacks import CallbackManagerForLLMRun
 from langchain_core.language_models.llms import LLM
-from langchain_core.pydantic_v1 import Extra, root_validator
+from langchain_core.pydantic_v1 import root_validator
 
 from free_llms.models import ClaudeChrome, GPTChrome, MistralChrome, PreplexityChrome
 
 
 class FreeLLMs(LLM):
+    client: Any  # private
+
     model_name: Optional[str] = None
     """One of the following model names to choose from: GPTChrome,PreplexityChrome,MistralChrome,ClaudeChrome"""
     llm_kwargs: Dict[str, Any]
@@ -17,10 +19,16 @@ class FreeLLMs(LLM):
     def start_model(cls, values: Dict) -> Dict:
         """Validate that api key and python package exists in environment."""
 
-        models = {"GPTChrome": GPTChrome, "PreplexityChrome": PreplexityChrome, "MistralChrome": MistralChrome, "ClaudeChrome": ClaudeChrome}
+        models: Dict[str, Type[Union[ClaudeChrome, GPTChrome, MistralChrome, PreplexityChrome]]] = {
+            "GPTChrome": GPTChrome,
+            "PreplexityChrome": PreplexityChrome,
+            "MistralChrome": MistralChrome,
+            "ClaudeChrome": ClaudeChrome,
+        }
         if values["model_name"] not in models:
             raise ValueError(f'The given model {values["model_name"]} is not correct. Please pass one of the following {list(models.keys())}')
-        values["client"] = models[values["model_name"]](**values["llm_kwargs"])
+        else:
+            values["client"] = models[values["model_name"]](**values["llm_kwargs"])
         return values
 
     @property
