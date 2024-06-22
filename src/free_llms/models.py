@@ -177,69 +177,23 @@ class GPTChrome(LLMChrome):
 
     @property
     def _model_url(self) -> str:
-        return "https://chatgpt.com/auth/login?sso="
+        return "https://chatgpt.com/"
 
     @property
     def _elements_identifier(self) -> Dict[str, str]:
         return {
-            "Login": '//*[@id="__next"]/div[1]/div[2]/div[1]/div/div/button[1]',  # noqa: E501
-            "Email": "username",
-            "Email_Continue": "action",
-            "Password": '//*[@id="password"]',
             "Prompt_Text_Area": "prompt-textarea",
-            "Prompt_Text_Output": '//*[@id="__next"]/div[1]/div[2]/main/div[2]/div[1]/div/div/div/div[{current}]/div/div/div[2]/div[2]/div[1]/div/div',  # noqa: E501
+            "Prompt_Text_Output": "/html/body/div[1]/div[1]/div[2]/main/div[2]/div[1]/div/div/div/div/div[{current}]/div/div/div[2]/div[2]/div[1]/div/div",  # noqa: E501
         }
 
     def login(self, retries_attempt: int = 3) -> bool:
         self.driver.get(self._model_url)
-        for i in range(retries_attempt):
-            self.run_manager.on_text(text=f"Making login attempt no. {i+1} on ChatGPT", verbose=self.verbosity)
-            try:
-                login_button = WebDriverWait(self.driver, self.waiting_time).until(
-                    EC.element_to_be_clickable((By.XPATH, self._elements_identifier["Login"]))
-                )
-                login_button.click()
-                email_input = WebDriverWait(self.driver, self.waiting_time).until(
-                    EC.presence_of_element_located((By.ID, self._elements_identifier["Email"]))
-                )
-                email_input.click()
-                email_input.send_keys(self.email)
-                continue_button = WebDriverWait(self.driver, self.waiting_time).until(
-                    EC.presence_of_element_located((By.NAME, self._elements_identifier["Email_Continue"]))
-                )
-                continue_button.click()
-                password_button = WebDriverWait(self.driver, self.waiting_time).until(
-                    EC.element_to_be_clickable((By.XPATH, self._elements_identifier["Password"]))
-                )
-                password_button.clear()
-                password_button.click()
-                password_button.send_keys(self.password)
-                password_button.submit()
-                self.run_manager.on_text(text=f"Login succeed on attempt no. {i+1}", verbose=self.verbosity)
-                return True
-            except TimeoutException:
-                continue
-        return False
+        return True
 
     def send_prompt(self, query: str) -> AIMessage:
-        while True:
-            try:
-                text_area = WebDriverWait(self.driver, self.waiting_time).until(
-                    EC.presence_of_element_located((By.ID, self._elements_identifier["Prompt_Text_Area"]))
-                )
-                break
-            except TimeoutException:
-                current_url = self.driver.current_url
-                self.driver.quit()
-                _chrome_version = os.environ.get("CHROME_VERSION", None)
-
-                self.driver = uc.Chrome(
-                    options=configure_options(self.driver_config + DRIVERS_DEFAULT_CONFIG),
-                    version_main=int(_chrome_version) if _chrome_version is not None else _chrome_version,
-                    headless=True,
-                )
-                self.run_manager.on_text(text="Captacha Detected on ChatGPT. Starting Annoymous Session", verbose=self.verbosity)
-                self.driver.get(current_url)
+        text_area = WebDriverWait(self.driver, self.waiting_time).until(
+            EC.presence_of_element_located((By.ID, self._elements_identifier["Prompt_Text_Area"]))
+        )
 
         text_area.click()
         text_area.send_keys(query)

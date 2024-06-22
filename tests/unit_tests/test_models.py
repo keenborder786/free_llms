@@ -4,19 +4,12 @@ from free_llms.models import AIMessage, ClaudeChrome, GPTChrome, MistralChrome, 
 
 
 def test_gpt_chrome():
-    with pytest.raises(ValueError, match="Cannot Login given the credentials"):
-        with GPTChrome(driver_config=[], email="wrong_email", password="wrong_password", retries_attempt=1) as session:
-            pass
-    assert GPTChrome(driver_config=[], email="wrong_email", password="wrong_password")._elements_identifier == {
-        "Login": '//*[@id="__next"]/div[1]/div[2]/div[1]/div/div/button[1]',  # noqa: E501
-        "Email": "username",
-        "Email_Continue": "action",
-        "Password": '//*[@id="password"]',
-        "Prompt_Text_Area": "prompt-textarea",
-        "Prompt_Text_Output": '//*[@id="__next"]/div[1]/div[2]/main/div[2]/div[1]/div/div/div/div[{current}]/div/div/div[2]/div[2]/div[1]/div/div',  # noqa: E501
-    }
-    assert GPTChrome(driver_config=[], email="wrong_email", password="wrong_password")._model_url == "https://chatgpt.com/auth/login?sso="
-    chrome_instance = GPTChrome(driver_config=[], email="wrong_email", password="wrong_password", retries_attempt=1)
+    assert GPTChrome(driver_config=[], email="", password="")._elements_identifier == {
+            "Prompt_Text_Area": "prompt-textarea",
+            "Prompt_Text_Output": '/html/body/div[1]/div[1]/div[2]/main/div[2]/div[1]/div/div/div/div/div[{current}]/div/div/div[2]/div[2]/div[1]/div/div',  # noqa: E501
+        }
+    assert GPTChrome(driver_config=[], email="", password="")._model_url == "https://chatgpt.com/"
+    chrome_instance = GPTChrome(driver_config=[], email="", password="", retries_attempt=1)
     chrome_instance.driver.get("https://chatgpt.com/")
     ans = chrome_instance.send_prompt("How are you doing?")
     assert isinstance(ans, AIMessage)
