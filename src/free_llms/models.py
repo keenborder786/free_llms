@@ -98,7 +98,7 @@ class LLMChrome(BaseModel, ABC):
         options = configure_options(data["driver_config"] + DRIVERS_DEFAULT_CONFIG)
         _chrome_version = os.environ.get("CHROME_VERSION", None)
         data["driver"] = uc.Chrome(
-            options=options, version_main=int(_chrome_version) if _chrome_version is not None else _chrome_version, headless=True
+            options=options, version_main=int(_chrome_version) if _chrome_version is not None else _chrome_version, headless=False
         )
         return data
 
@@ -224,7 +224,7 @@ class PreplexityChrome(LLMChrome):
     @property
     def _elements_identifier(self) -> Dict[str, str]:
         return {
-            "Prompt_Text_Area": "/html/body/div/main/div/div/div/div/div/div/div[1]/div[2]/div/div/span/div/div/textarea",
+            "Prompt_Text_Area": '//*[@id="__next"]/main/div/div/div/div/div/div/div[1]/div[2]/div/div/span/div/div/div[1]/textarea',
             "Prompt_Text_Area_Submit": "#__next > main > div > div > div.grow.lg\:pr-sm.lg\:pb-sm.lg\:pt-sm > div > div > div > div.relative.flex.h-full.flex-col > div.mt-lg.w-full.grow.items-center.md\:mt-0.md\:flex.border-borderMain\/50.ring-borderMain\/50.divide-borderMain\/50.dark\:divide-borderMainDark\/50.dark\:ring-borderMainDark\/50.dark\:border-borderMainDark\/50.bg-transparent > div > div > span > div > div > div.bg-background.dark\:bg-offsetDark.flex.items-center.space-x-2.justify-self-end.rounded-full.col-start-3.row-start-2.-mr-2 > button",  # noqa: E501
             "Prompt_Text_Area_Output": "/html/body/div/main/div/div/div/div/div/div[2]/div[1]/div/div/div[1]/div/div/div[3]/div/div[1]/div[2]/div/div[2]",  # noqa: E501
             "Prompt_Text_Area_Output_Related": "/html/body/div/main/div/div/div/div/div/div[2]/div[1]/div/div/div[1]/div/div/div[3]/div/div[1]/div[3]/div/div",  # noqa: E501
@@ -361,11 +361,11 @@ class ClaudeChrome(LLMChrome):
         return {
             "Email": '//*[@id="email"]',
             "Login_Button": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/button",
-            "Login_Code": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/div[3]/input",
-            "Login_Code_Confirmation": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/button",
+            "Login_Code": '//*[@id="code"]',
+            "Login_Code_Confirmation": "/html/body/div[2]/div/main/div[1]/div/div/form/button",
             "Start_Chat_Button": "/html/body/div[2]/div/main/div[1]/div[2]/div[1]/div/div/fieldset/div/div[2]/div[2]/button",
-            "Prompt_Text_Area": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[1]/div/div/div/div/p",  # noqa: E501
-            "Prompt_Text_Area_Submit": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[2]/div[2]/div/button",  # noqa: E501
+            "Prompt_Text_Area": "/html/body/div[2]/div/main/div[2]/div/fieldset/div[1]/div[1]/div/div/p",  # noqa: E501
+            "Prompt_Text_Area_Submit": "/html/body/div[2]/div/main/div[2]/div/fieldset/div[1]/div[1]/div[2]/div/button",  # noqa: E501
             "Prompt_Text_Area_Output": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[1]/div[{current}]/div/div/div[1]/div/div",
         }
 
@@ -383,19 +383,19 @@ class ClaudeChrome(LLMChrome):
                     EC.presence_of_element_located((By.XPATH, self._elements_identifier["Login_Button"]))
                 )
                 login_button.click()
-                login_code = WebDriverWait(self.driver, self.waiting_time).until(
-                    EC.presence_of_element_located((By.XPATH, self._elements_identifier["Login_Code"]))
-                )
-                input_code = input(f"Please open your email {self.email} and type in verification code:")
-                login_code.send_keys(input_code)
-                login_code_confirmation = WebDriverWait(self.driver, self.waiting_time).until(
-                    EC.presence_of_element_located((By.XPATH, self._elements_identifier["Login_Code_Confirmation"]))
-                )
-                login_code_confirmation.click()
-                self.run_manager.on_text(text=f"Login succeed on attempt no. {i+1}", verbose=self.verbosity)
-                return True
             except TimeoutException:
                 continue
+            login_code = WebDriverWait(self.driver, self.waiting_time).until(
+                EC.presence_of_element_located((By.XPATH, self._elements_identifier["Login_Code"]))
+            )
+            input_code = input(f"Please open your email {self.email} and type in verification code:")
+            login_code.send_keys(input_code)
+            login_code_confirmation = WebDriverWait(self.driver, self.waiting_time).until(
+                EC.presence_of_element_located((By.XPATH, self._elements_identifier["Login_Code_Confirmation"]))
+            )
+            login_code_confirmation.click()
+            self.run_manager.on_text(text=f"Login succeed on attempt no. {i+1}", verbose=self.verbosity)
+            return True
         return False
 
     def send_prompt(self, query: str) -> AIMessage:
@@ -415,7 +415,7 @@ class ClaudeChrome(LLMChrome):
             EC.presence_of_element_located((By.XPATH, self._elements_identifier["Prompt_Text_Area_Submit"]))
         )
         prompt_text_area_submit.click()
-        time.sleep(self.waiting_time)
+        time.sleep(100000)
         current_n, prev_n = 0, -1
         while current_n != prev_n:
             prev_n = current_n

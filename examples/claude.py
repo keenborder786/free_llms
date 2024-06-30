@@ -4,7 +4,7 @@ driver_config = []  # pass in selnium driver config except for the following ["-
 with ClaudeChrome(
     driver_config=driver_config,
     email="mohammad.mohtashim78@gmail.com",
-    password="",  # password not needed for ClaudeChrome
+    password="Keenborder@0290",  # password not needed for ClaudeChrome
 ) as session:  # A single session started with ClaudeChrome
     # once you login, you will get a code at your email which you need to type in
     session.send_prompt("What is silicon valley?")
