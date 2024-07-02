@@ -364,9 +364,9 @@ class ClaudeChrome(LLMChrome):
             "Login_Code": '//*[@id="code"]',
             "Login_Code_Confirmation": "/html/body/div[2]/div/main/div[1]/div/div/form/button",
             "Start_Chat_Button": "/html/body/div[2]/div/main/div[1]/div[2]/div[1]/div/div/fieldset/div/div[2]/div[2]/button",
-            "Prompt_Text_Area": "/html/body/div[2]/div/main/div[2]/div/fieldset/div[1]/div[1]/div/div/p",  # noqa: E501
+            "Prompt_Text_Area": "/html/body/div[2]/div/div/div[2]/div/div[2]/div/fieldset/div[1]/div[1]/div/div/p",  # noqa: E501
             "Prompt_Text_Area_Submit": "/html/body/div[2]/div/main/div[2]/div/fieldset/div[1]/div[1]/div[2]/div/button",  # noqa: E501
-            "Prompt_Text_Area_Output": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[1]/div[{current}]/div/div/div[1]/div/div",
+            "Prompt_Text_Area_Output": "/html/body/div[2]/div/div/div[2]/div/div[1]/div[{current}]/div/div/div[1]/div/div",  # noqa: E501
         }
 
     def login(self, retries_attempt: int = 3) -> bool:
@@ -415,7 +415,6 @@ class ClaudeChrome(LLMChrome):
             EC.presence_of_element_located((By.XPATH, self._elements_identifier["Prompt_Text_Area_Submit"]))
         )
         prompt_text_area_submit.click()
-        time.sleep(100000)
         current_n, prev_n = 0, -1
         while current_n != prev_n:
             prev_n = current_n
