@@ -59,15 +59,17 @@ def test_mistral_chrome():
 def test_claude_chrome():
     instance_chrome = ClaudeChrome(driver_config=[], email="wrong_email", password="wrong_password")
     assert instance_chrome._elements_identifier == {
-        "Email": '//*[@id="email"]',
-        "Login_Button": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/button",
-        "Login_Code": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/div[3]/input",
-        "Login_Code_Confirmation": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/button",
-        "Start_Chat_Button": "/html/body/div[2]/div/main/div[1]/div[2]/div[1]/div/div/fieldset/div/div[2]/div[2]/button",
-        "Prompt_Text_Area": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[1]/div/div/div/div/p",  # noqa: E501
-        "Prompt_Text_Area_Submit": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[2]/div/div/div/div/fieldset/div[2]/div[1]/div[2]/div[2]/div/button",  # noqa: E501
-        "Prompt_Text_Area_Output": "/html/body/div[2]/div/div[2]/div/div[2]/div[2]/div[1]/div[{current}]/div/div/div[1]/div/div",
-    }
+            "Email": '//*[@id="email"]',
+            "Login_Button": "/html/body/div[2]/div/main/div[1]/div/div[1]/form/button",
+            "Login_Code": '//*[@id="code"]',
+            "Login_Code_Confirmation": "/html/body/div[2]/div/main/div[1]/div/div/form/button",
+            "Start_Chat_Button": "/html/body/div[2]/div/main/div[1]/div[2]/div[1]/div/div/fieldset/div/div[2]/div[2]/button",
+            "Prompt_Text_Area": "/html/body/div[2]/div/main/div[2]/div/fieldset/div[1]/div[1]/div/div/p",  # noqa: E501
+            "Prompt_Text_Area_2":"/html/body/div[2]/div/div/div[2]/div/div[2]/div/fieldset/div[1]/div[1]/div/div/p",
+            "Prompt_Text_Area_Submit": "/html/body/div[2]/div/main/div[2]/div/fieldset/div[1]/div[1]/div[2]/div/button",  # noqa: E501
+            "Prompt_Text_Area_Submit_2":"/html/body/div[2]/div/div/div[2]/div/div[2]/div/fieldset/div[1]/div[1]/div[2]/div/button",
+            "Prompt_Text_Area_Output": "/html/body/div[2]/div/div/div[2]/div/div[1]/div[{current}]/div/div/div[1]/div/div",  # noqa: E501
+        }
     assert instance_chrome._model_url == "https://claude.ai/login"
     instance_chrome.driver.quit()
     with pytest.raises(ValueError, match="Cannot Login given the credentials"):
